@@ -60,7 +60,8 @@ MEMORY
 {
   m_interrupts          (RX)  : ORIGIN = 0x00000000, LENGTH = 0x00000400
   m_flash_config        (RX)  : ORIGIN = 0x00000400, LENGTH = 0x00000010
-  m_text                (RX)  : ORIGIN = 0x00000410, LENGTH = 0x0007FBF0
+  m_fw_version          (RX)  : ORIGIN = 0x00000410, LENGTH = 0x00000004
+  m_text                (RX)  : ORIGIN = 0x00000414, LENGTH = 0x0007FBEC
   m_data                (RW)  : ORIGIN = 0x1FFF0000, LENGTH = 0x00010000
   m_data_2              (RW)  : ORIGIN = 0x20000000, LENGTH = 0x00010000
 }
@@ -79,10 +80,15 @@ SECTIONS
 
   .flash_config :
   {
-    . = ALIGN(4);
+  	. = ALIGN(4);
     KEEP(*(.FlashConfig))    /* Flash Configuration Field (FCF) */
     . = ALIGN(4);
   } > m_flash_config
+  
+    .fw_config :
+  {
+    KEEP(*(.FwVersion))    /* Firmware version */
+  } > m_fw_version
 
   /* The program code and other data goes into internal flash */
   .text :

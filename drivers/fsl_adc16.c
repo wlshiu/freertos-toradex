@@ -152,7 +152,7 @@ status_t ADC16_DoAutoCalibration(ADC_Type *base)
     volatile uint32_t tmp32; /* 'volatile' here is for the dummy read of ADCx_R[0] register. */
     status_t status = kStatus_Success;
 
-    /* The calibration would be failed when in hardwar mode.
+    /* The calibration would be failed when in hardware mode.
      * Remember the hardware trigger state here and restore it later if the hardware trigger is enabled.*/
     if (0U != (ADC_SC2_ADTRG_MASK & base->SC2))
     {

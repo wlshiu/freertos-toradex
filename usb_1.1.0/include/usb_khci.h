@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 - 2016, Freescale Semiconductor, Inc.
+ * Copyright (c) 2015, Freescale Semiconductor, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -28,47 +28,35 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* This is a template file for board configuration created by New Kinetis SDK 2.x Project Wizard. Enjoy! */
-
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#ifndef __USB_KHCI_H__
+#define __USB_KHCI_H__
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
 
-/* The board name */
-#define BOARD_NAME "###-not-specified-###"
+#define USB_KHCI_BDT_DEVICE_OUT_TOKEN (0x01U)
+#define USB_KHCI_BDT_DEVICE_IN_TOKEN (0x09U)
+#define USB_KHCI_BDT_DEVICE_SETUP_TOKEN (0x0DU)
 
-#define BOARD_USE_UART
-#define BOARD_DEBUG_UART_TYPE DEBUG_CONSOLE_DEVICE_TYPE_UART
-#define BOARD_DEBUG_UART_BASEADDR (uint32_t) UART3
-#define BOARD_DEBUG_UART_CLKSRC kCLOCK_BusClk
-#define BOARD_DEBUG_UART_CLK_FREQ CLOCK_GetBusClkFreq()
-#define BOARD_UART_IRQ UART3_RX_TX_IRQn
-#define BOARD_UART_IRQ_HANDLER UART3_RX_TX_IRQHandler
+#define USB_KHCI_BDT_OWN (0x80U)
+#define USB_KHCI_BDT_DATA01(x) ((((uint32_t)(x)) & 0x01U) << 0x06U)
+#define USB_KHCI_BDT_BC(x) ((((uint32_t)(x)) & 0x3FFU) << 0x10U)
+#define UBS_KHCI_BDT_KEEP (0x20U)
+#define UBS_KHCI_BDT_NINC (0x10U)
+#define USB_KHCI_BDT_DTS (0x08U)
+#define USB_KHCI_BDT_STALL (0x04U)
 
-#define BOARD_USES_ADC
+typedef enum _usb_khci_interrupt_type
+{
+    kUSB_KhciInterruptReset = 0x01U,
+    kUSB_KhciInterruptError = 0x02U,
+    kUSB_KhciInterruptSofToken = 0x04U,
+    kUSB_KhciInterruptTokenDone = 0x08U,
+    kUSB_KhciInterruptSleep = 0x10U,
+    kUSB_KhciInterruptResume = 0x20U,
+    kUSB_KhciInterruptAttach = 0x40U,
+    kUSB_KhciInterruptStall = 0x80U,
+} usb_khci_interrupt_type_t;
 
-#ifndef BOARD_DEBUG_UART_BAUDRATE
-#define BOARD_DEBUG_UART_BAUDRATE 115200
-#endif
-
-/*******************************************************************************
- * API
- ******************************************************************************/
-
-#if defined(__cplusplus)
-extern "C" {
-#endif /* __cplusplus */
-
-/*!
- * @brief initialize debug console to enable printf for this demo/example
- */
-void BOARD_InitDebugConsole(void);
-
-#if defined(__cplusplus)
-}
-#endif /* __cplusplus */
-
-#endif /* _BOARD_H_ */
+#endif /* __USB_KHCI_H__ */

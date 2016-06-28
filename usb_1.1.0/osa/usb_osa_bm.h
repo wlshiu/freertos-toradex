@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 - 2016, Freescale Semiconductor, Inc.
+ * Copyright (c) 2015 - 2016, Freescale Semiconductor, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -28,31 +28,16 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* This is a template file for board configuration created by New Kinetis SDK 2.x Project Wizard. Enjoy! */
-
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#ifndef __USB_OSA_BM_H__
+#define __USB_OSA_BM_H__
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
 
-/* The board name */
-#define BOARD_NAME "###-not-specified-###"
-
-#define BOARD_USE_UART
-#define BOARD_DEBUG_UART_TYPE DEBUG_CONSOLE_DEVICE_TYPE_UART
-#define BOARD_DEBUG_UART_BASEADDR (uint32_t) UART3
-#define BOARD_DEBUG_UART_CLKSRC kCLOCK_BusClk
-#define BOARD_DEBUG_UART_CLK_FREQ CLOCK_GetBusClkFreq()
-#define BOARD_UART_IRQ UART3_RX_TX_IRQn
-#define BOARD_UART_IRQ_HANDLER UART3_RX_TX_IRQHandler
-
-#define BOARD_USES_ADC
-
-#ifndef BOARD_DEBUG_UART_BAUDRATE
-#define BOARD_DEBUG_UART_BAUDRATE 115200
-#endif
+#define USB_OSA_SR_ALLOC() uint8_t usbOsaCurrentSr;
+#define USB_OSA_ENTER_CRITICAL() USB_OsaEnterCritical(&usbOsaCurrentSr)
+#define USB_OSA_EXIT_CRITICAL() USB_OsaExitCritical(usbOsaCurrentSr)
 
 /*******************************************************************************
  * API
@@ -60,15 +45,13 @@
 
 #if defined(__cplusplus)
 extern "C" {
-#endif /* __cplusplus */
+#endif
 
-/*!
- * @brief initialize debug console to enable printf for this demo/example
- */
-void BOARD_InitDebugConsole(void);
+extern void USB_OsaEnterCritical(uint8_t *sr);
+extern void USB_OsaExitCritical(uint8_t sr);
 
 #if defined(__cplusplus)
 }
-#endif /* __cplusplus */
+#endif
 
-#endif /* _BOARD_H_ */
+#endif /* __USB_OSA_BM_H__ */
