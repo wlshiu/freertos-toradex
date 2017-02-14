@@ -60,27 +60,36 @@ SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DCPU_MCIMX7D_M4")
 # INCLUDE_DIRECTORIES
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
     INCLUDE_DIRECTORIES(${ProjDirPath}/../..)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/rtos/FreeRTOS/Source/portable/GCC/ARM_CM4F)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/CMSIS/Include)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices/MCIMX7D/include)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices/MCIMX7D/startup)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/drivers/inc)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/rtos/FreeRTOS/Source/include)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/utilities/inc)
-    INCLUDE_DIRECTORIES(${BspRootDirPath}/../..)
+    INCLUDE_DIRECTORIES(${ProjDirPath}/../..)
+    INCLUDE_DIRECTORIES(${ProjDirPath}/..)
 ELSEIF(CMAKE_BUILD_TYPE MATCHES Release)
     INCLUDE_DIRECTORIES(${ProjDirPath}/../..)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/rtos/FreeRTOS/Source/portable/GCC/ARM_CM4F)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/CMSIS/Include)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices/MCIMX7D/include)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices/MCIMX7D/startup)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/drivers/inc)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/rtos/FreeRTOS/Source/include)
     INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/utilities/inc)
     INCLUDE_DIRECTORIES(${ProjDirPath}/../..)
+    INCLUDE_DIRECTORIES(${ProjDirPath}/..)
 ENDIF()
 
 # ADD_EXECUTABLE
 ADD_EXECUTABLE(low_power_demo
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h"
     "${BspRootDirPath}/platform/devices/MCIMX7D/startup/gcc/startup_MCIMX7D_M4.S"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/portable/MemMang/heap_2.c"
     "${BspRootDirPath}/platform/utilities/src/debug_console_imx.c"
     "${BspRootDirPath}/platform/utilities/inc/debug_console_imx.h"
     "${BspRootDirPath}/platform/utilities/src/print_scan.c"
@@ -96,6 +105,26 @@ ADD_EXECUTABLE(low_power_demo
     "${BspRootDirPath}/platform/drivers/src/lmem.c"
     "${BspRootDirPath}/platform/drivers/src/rdc.c"
     "${BspRootDirPath}/platform/drivers/src/wdog_imx.c"
+    "${BspRootDirPath}/platform/drivers/src/ecspi.c"
+    "${BspRootDirPath}/platform/drivers/inc/ecspi.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/croutine.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/event_groups.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/FreeRTOS.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/list.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/mpu_wrappers.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/portable.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/projdefs.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/queue.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/semphr.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/StackMacros.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/task.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/include/timers.h"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/croutine.c"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/event_groups.c"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/list.c"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/queue.c"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/tasks.c"
+    "${BspRootDirPath}/rtos/FreeRTOS/Source/timers.c"
     "${BspRootDirPath}/platform/devices/MCIMX7D/startup/system_MCIMX7D_M4.c"
     "${BspRootDirPath}/platform/devices/MCIMX7D/startup/system_MCIMX7D_M4.h"
     "${ProjDirPath}/../../pin_mux.c"
@@ -104,6 +133,7 @@ ADD_EXECUTABLE(low_power_demo
     "${ProjDirPath}/../../board.h"
     "${ProjDirPath}/../../clock_freq.c"
     "${ProjDirPath}/../../clock_freq.h"
+    "${ProjDirPath}/../FreeRTOSConfig.h"
     "${ProjDirPath}/../hardware_init.c"
     "${ProjDirPath}/../gpio_pins.c"
     "${ProjDirPath}/../gpio_pins.h"
