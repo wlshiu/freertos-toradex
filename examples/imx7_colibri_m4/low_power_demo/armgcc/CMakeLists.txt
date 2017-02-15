@@ -137,6 +137,8 @@ ADD_EXECUTABLE(low_power_demo
     "${ProjDirPath}/../hardware_init.c"
     "${ProjDirPath}/../gpio_pins.c"
     "${ProjDirPath}/../gpio_pins.h"
+    "${ProjDirPath}/../ugui/ugui.h"
+    "${ProjDirPath}/../ugui/ugui.c"
     "${ProjDirPath}/../main.c"
     "${BspRootDirPath}/platform/drivers/src/gpio_imx.c"
     "${BspRootDirPath}/platform/drivers/inc/gpio_imx.h"
