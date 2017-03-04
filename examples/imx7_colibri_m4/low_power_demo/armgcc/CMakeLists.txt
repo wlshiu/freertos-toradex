@@ -107,6 +107,8 @@ ADD_EXECUTABLE(low_power_demo
     "${BspRootDirPath}/platform/drivers/src/wdog_imx.c"
     "${BspRootDirPath}/platform/drivers/src/ecspi.c"
     "${BspRootDirPath}/platform/drivers/inc/ecspi.h"
+    "${BspRootDirPath}/platform/drivers/src/mu_imx.c"
+    "${BspRootDirPath}/platform/drivers/inc/mu_imx.h"
     "${BspRootDirPath}/rtos/FreeRTOS/Source/include/croutine.h"
     "${BspRootDirPath}/rtos/FreeRTOS/Source/include/event_groups.h"
     "${BspRootDirPath}/rtos/FreeRTOS/Source/include/FreeRTOS.h"
