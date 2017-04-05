@@ -1,15 +1,15 @@
 
 #include "com_task.h"
+#include "can_task.h"
 #include "gpio_ext.h"
 #include "adc_task.h"
 
 /* Put FW version at known address in binary. Make it 32-bit to have room for the future*/
 const uint32_t __attribute__((section(".FwVersion"))) fw_version = APALIS_TK1_K20_FW_VER;
 
-#define MAX_TRANSFER_SIZE 32U
 static dspi_slave_handle_t spi_handle;
-static uint8_t slaveRxData[MAX_TRANSFER_SIZE] = {0U};
-static uint8_t slaveTxData[MAX_TRANSFER_SIZE] = {0U};
+static uint8_t slaveRxData[APALIS_TK1_K20_MAX_BULK] = {0U};
+static uint8_t slaveTxData[APALIS_TK1_K20_MAX_BULK] = {0U};
 
 void generate_irq(uint8_t irq) {
 	gen_regs.irq = gen_regs.irq | BIT(irq);
@@ -67,7 +67,7 @@ void set_irq_reg(uint8_t value)
 
 }
 
-int inline general_registers(uint8_t *rx_buf, uint8_t * tx_buf) {
+inline int general_registers(uint8_t *rx_buf, uint8_t * tx_buf) {
 
 	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
 		switch (rx_buf[1]) {
@@ -173,6 +173,13 @@ void spi_task(void *pvParameters) {
 		xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
 		if (slaveRxData[1] <= 0x05) {
 			ret = general_registers(slaveRxData, &slaveTxData[1]);
+		} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0))
+			&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_FIF0_END + APALIS_TK1_K20_CAN_DEV_OFFSET(0))) {
+			ret = can0_registers(slaveRxData, &slaveTxData[1]);
+
+		} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1))
+			&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_FIF0_END + APALIS_TK1_K20_CAN_DEV_OFFSET(1))) {
+			ret = can1_registers(slaveRxData, &slaveTxData[1]);
 #ifdef BOARD_USES_ADC
 		} else if ((slaveRxData[1] >= APALIS_TK1_K20_ADCREG) && (slaveRxData[1] <= APALIS_TK1_K20_ADC_CH3H)) {
 			ret = adc_registers(slaveRxData, &slaveTxData[1]);

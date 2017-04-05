@@ -39,6 +39,7 @@
 #include "clock_config.h"
 #include "fsl_debug_console.h"
 #include "com_task.h"
+#include "can_task.h"
 #include "adc_task.h"
 
 /* FreeRTOS kernel includes. */
@@ -113,6 +114,8 @@ int main(void) {
 	}
 #endif
 
+	NVIC_SetPriority(CAN0_ORed_Message_buffer_IRQn, 5u);
+	NVIC_SetPriority(CAN1_ORed_Message_buffer_IRQn, 5u);
 	NVIC_SetPriorityGrouping( 0 );
 	vTaskStartScheduler();
 

@@ -51,44 +51,49 @@ void spi_task(void *pvParameters);
 
 /* CAN Registers */
 #define APALIS_TK1_K20_CANREG			0x10 /* CAN control & status register RW */
-#define APALIS_TK1_K20_CAN_BAUD_REG		0x11 /* CAN Baud set register RW */
-#define APALIS_TK1_K20_CAN_IN_BUF_CNT		0x12 /* CAN IN BUF Received Data Count RO */
-#define APALIS_TK1_K20_CAN_IN_BUF		0x13 /* CAN IN BUF RO */
-#define APALIS_TK1_K20_CAN_OUT_BUF_CNT		0x14 /* CAN OUT BUF  Data Count WO, must be written before bulk write to APALIS_TK1_K20_CAN0_OUT_BUF_CNT */
-#define APALIS_TK1_K20_CAN_OUT_FIF0		0x15 /* CAN OUT BUF WO */
-
-#define APALIS_TK1_K20_CAN_DEV_OFFSET(x)	(x ? 0:0x10)
+#define APALIS_TK1_K20_CANERR			0x11 /* Error register RW */
+#define APALIS_TK1_K20_CAN_BAUD_REG		0x12 /* CAN Baud set register RW */
+#define APALIS_TK1_K20_CAN_BIT_1		0x13 /* CAN Bittiming register 1 RW */
+#define APALIS_TK1_K20_CAN_BIT_2		0x14 /* CAN Bittiming register 2 RW */
+#define APALIS_TK1_K20_CAN_IN_BUF_CNT		0x15 /* CAN IN BUF Received Data Count RO */
+#define APALIS_TK1_K20_CAN_IN_BUF		0x16 /* CAN IN BUF RO */
+/* buffer size is 14 bytes */
+#define APALIS_TK1_K20_CAN_OUT_BUF_CNT		0x25 /* CAN OUT BUF  Data Count WO */
+#define APALIS_TK1_K20_CAN_OUT_FIF0		0x26 /* CAN OUT BUF WO */
+/* buffer size is 14 bytes */
+#define APALIS_TK1_K20_CAN_OUT_FIF0_END		0x35 /* CAN OUT BUF END */
+#define APALIS_TK1_K20_CAN_DEV_OFFSET(x)	(x ? 0 : 0x30)
 
 /* ADC Registers */
-#define APALIS_TK1_K20_ADCREG			0x30 /* ADC control & status register RW */
-#define APALIS_TK1_K20_ADC_CH0L			0x31 /* ADC Channel 0 LSB RO */
-#define APALIS_TK1_K20_ADC_CH0H			0x32 /* ADC Channel 0 MSB RO */
-#define APALIS_TK1_K20_ADC_CH1L			0x33 /* ADC Channel 1 LSB RO */
-#define APALIS_TK1_K20_ADC_CH1H			0x34 /* ADC Channel 1 MSB RO */
-#define APALIS_TK1_K20_ADC_CH2L			0x35 /* ADC Channel 2 LSB RO */
-#define APALIS_TK1_K20_ADC_CH2H			0x36 /* ADC Channel 2 MSB RO */
-#define APALIS_TK1_K20_ADC_CH3L			0x37 /* ADC Channel 3 LSB RO */
-#define APALIS_TK1_K20_ADC_CH3H			0x38 /* ADC Channel 3 MSB RO */
+#define APALIS_TK1_K20_ADCREG			0x70 /* ADC control & status register RW */
+#define APALIS_TK1_K20_ADC_CH0L			0x71 /* ADC Channel 0 LSB RO */
+#define APALIS_TK1_K20_ADC_CH0H			0x72 /* ADC Channel 0 MSB RO */
+#define APALIS_TK1_K20_ADC_CH1L			0x73 /* ADC Channel 1 LSB RO */
+#define APALIS_TK1_K20_ADC_CH1H			0x74 /* ADC Channel 1 MSB RO */
+#define APALIS_TK1_K20_ADC_CH2L			0x75 /* ADC Channel 2 LSB RO */
+#define APALIS_TK1_K20_ADC_CH2H			0x76 /* ADC Channel 2 MSB RO */
+#define APALIS_TK1_K20_ADC_CH3L			0x77 /* ADC Channel 3 LSB RO */
+#define APALIS_TK1_K20_ADC_CH3H			0x78 /* ADC Channel 3 MSB RO */
 /* Bulk read of LSB register can be use to read entire 16-bit in one command */
 
 /* TSC Register */
-#define APALIS_TK1_K20_TSCREG			0x40 /* TSC control & status register RW */
-#define APALIS_TK1_K20_TSC_XML			0x41 /* TSC X- data LSB RO */
-#define APALIS_TK1_K20_TSC_XMH			0x42 /* TSC X- data MSB RO */
-#define APALIS_TK1_K20_TSC_XPL			0x43 /* TSC X+ data LSB RO */
-#define APALIS_TK1_K20_TSC_XPH			0x44 /* TSC X+ data MSB RO */
-#define APALIS_TK1_K20_TSC_YML			0x45 /* TSC Y- data LSB RO */
-#define APALIS_TK1_K20_TSC_YMH			0x46 /* TSC Y- data MSB RO */
-#define APALIS_TK1_K20_TSC_YPL			0x47 /* TSC Y+ data LSB RO */
-#define APALIS_TK1_K20_TSC_YPH			0x48 /* TSC Y+ data MSB RO */
+#define APALIS_TK1_K20_TSCREG			0x80 /* TSC control & status register RW */
+#define APALIS_TK1_K20_TSC_XML			0x81 /* TSC X- data LSB RO */
+#define APALIS_TK1_K20_TSC_XMH			0x82 /* TSC X- data MSB RO */
+#define APALIS_TK1_K20_TSC_XPL			0x83 /* TSC X+ data LSB RO */
+#define APALIS_TK1_K20_TSC_XPH			0x84 /* TSC X+ data MSB RO */
+#define APALIS_TK1_K20_TSC_YML			0x85 /* TSC Y- data LSB RO */
+#define APALIS_TK1_K20_TSC_YMH			0x86 /* TSC Y- data MSB RO */
+#define APALIS_TK1_K20_TSC_YPL			0x87 /* TSC Y+ data LSB RO */
+#define APALIS_TK1_K20_TSC_YPH			0x88 /* TSC Y+ data MSB RO */
 /* Bulk read of LSB register can be use to read entire 16-bit in one command */
 #define APALIS_TK1_K20_TSC_ENA			BIT(0)
-#define APALIS_TK1_K20_TSC_ENA_MASK		0xFE
+#define APALIS_TK1_K20_TSC_ENA_MASK		BIT(0)
 
 /* GPIO Registers */
-#define APALIS_TK1_K20_GPIOREG			0x50 /* GPIO control & status register RW */
-#define APALIS_TK1_K20_GPIO_NO			0x51 /* currently configured GPIO RW */
-#define APALIS_TK1_K20_GPIO_STA			0x52 /* Status register for the APALIS_TK1_K20_GPIO_NO GPIO RW */
+#define APALIS_TK1_K20_GPIOREG			0x90 /* GPIO control & status register RW */
+#define APALIS_TK1_K20_GPIO_NO			0x91 /* currently configured GPIO RW */
+#define APALIS_TK1_K20_GPIO_STA			0x92 /* Status register for the APALIS_TK1_K20_GPIO_NO GPIO RW */
 /* MSB | 0 ... 0 | VALUE | Output-1 / Input-0 | LSB  */
 #define APALIS_TK1_K20_GPIO_STA_OE		BIT(0)
 #define APALIS_TK1_K20_GPIO_STA_VAL		BIT(1)
@@ -101,7 +106,7 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_TSC_IRQ			4
 #define APALIS_TK1_K20_GPIO_IRQ			5
 
-#define APALIS_TK1_K20_FW_VER			0x05
+#define APALIS_TK1_K20_FW_VER			0x09
 
 #define FW_MINOR (APALIS_TK1_K20_FW_VER & 0x0F)
 #define FW_MAJOR ((APALIS_TK1_K20_FW_VER & 0xF0) >> 8)
