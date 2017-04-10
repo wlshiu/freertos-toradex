@@ -8,8 +8,8 @@
 const uint32_t __attribute__((section(".FwVersion"))) fw_version = APALIS_TK1_K20_FW_VER;
 
 static dspi_slave_handle_t spi_handle;
-static uint8_t slaveRxData[APALIS_TK1_K20_MAX_BULK] = {0U};
-static uint8_t slaveTxData[APALIS_TK1_K20_MAX_BULK] = {0U};
+static uint8_t slaveRxData[APALIS_TK1_K20_MAX_BULK + APALIS_TK1_K20_HEADER] = {0U};
+static uint8_t slaveTxData[APALIS_TK1_K20_MAX_BULK + APALIS_TK1_K20_HEADER] = {0U};
 
 void generate_irq(uint8_t irq) {
 	gen_regs.irq = gen_regs.irq | BIT(irq);
@@ -67,7 +67,10 @@ void set_irq_reg(uint8_t value)
 
 }
 
-inline int general_registers(uint8_t *rx_buf, uint8_t * tx_buf) {
+inline int general_registers(dspi_transfer_t *spi_transfer)
+{
+	uint8_t *rx_buf = spi_transfer->rxData;
+	uint8_t *tx_buf = &spi_transfer->txData[1];
 
 	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
 		switch (rx_buf[1]) {
@@ -172,23 +175,23 @@ void spi_task(void *pvParameters) {
 		DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
 		xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
 		if (slaveRxData[1] <= 0x05) {
-			ret = general_registers(slaveRxData, &slaveTxData[1]);
+			ret = general_registers(&slaveXfer);
 		} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0))
-			&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_FIF0_END + APALIS_TK1_K20_CAN_DEV_OFFSET(0))) {
-			ret = can0_registers(slaveRxData, &slaveTxData[1]);
+			&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(0))) {
+			ret = can0_registers(&slaveXfer);
 
 		} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1))
-			&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_FIF0_END + APALIS_TK1_K20_CAN_DEV_OFFSET(1))) {
-			ret = can1_registers(slaveRxData, &slaveTxData[1]);
+			&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(1))) {
+			ret = can1_registers(&slaveXfer);
 #ifdef BOARD_USES_ADC
 		} else if ((slaveRxData[1] >= APALIS_TK1_K20_ADCREG) && (slaveRxData[1] <= APALIS_TK1_K20_ADC_CH3H)) {
-			ret = adc_registers(slaveRxData, &slaveTxData[1]);
+			ret = adc_registers(&slaveXfer);
 
 		} else if ((slaveRxData[1] >= APALIS_TK1_K20_TSCREG) && (slaveRxData[1] <= APALIS_TK1_K20_TSC_YPH)) {
-			ret = tsc_registers(slaveRxData, &slaveTxData[1]);
+			ret = tsc_registers(&slaveXfer);
 #endif
 		} else if ((slaveRxData[1] >= APALIS_TK1_K20_GPIOREG) && (slaveRxData[1] <= APALIS_TK1_K20_GPIO_STA)) {
-			ret = gpio_registers(slaveRxData, &slaveTxData[1]);
+			ret = gpio_registers(&slaveXfer);
 
 		} else {
 			/* Register not defined */

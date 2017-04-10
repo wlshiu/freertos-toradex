@@ -6,9 +6,10 @@
 #ifndef SOURCE_GPIO_EXT_H_
 #define SOURCE_GPIO_EXT_H_
 
+#include "board.h"
 #include "fsl_device_registers.h"
 #include "fsl_debug_console.h"
-#include "board.h"
+#include "fsl_dspi.h"
 
 struct gpio_id{
 	PORT_Type *port;
@@ -68,6 +69,6 @@ struct gpio_id gpio_list [] = {
 int is_gpio_valid(uint8_t pin);
 int set_gpio_status(uint8_t status, uint8_t pin);
 uint8_t get_gpio_status(uint8_t pin);
-int gpio_registers(uint8_t *rx_buf, uint8_t *tx_buf);
+int gpio_registers(dspi_transfer_t *spi_transfer);
 
 #endif /* SOURCE_GPIO_EXT_H_ */

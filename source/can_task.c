@@ -147,7 +147,7 @@ static void CAN_Init()
 }
 
 
-void can_test_task(void *pvParameters) {
+void can_task(void *pvParameters) {
 	flexcan_frame_t txFrame, rxFrame;
 	flexcan_mb_transfer_t txXfer, rxXfer;
 	callback_message_t cb_msg[2];
@@ -224,10 +224,18 @@ void can_test_task(void *pvParameters) {
 	vTaskDelete(NULL);
 }
 
-int can0_registers(uint8_t *rx_buf, uint8_t *tx_buf){
+int can0_registers(dspi_transfer_t *spi_transfer)
+{
+	uint8_t *rx_buf = spi_transfer->rxData;
+	uint8_t *tx_buf = &spi_transfer->txData[1];
+
 	return -EIO;
 }
 
-int can1_registers(uint8_t *rx_buf, uint8_t *tx_buf){
+int can1_registers(dspi_transfer_t *spi_transfer)
+{
+	uint8_t *rx_buf = spi_transfer->rxData;
+	uint8_t *tx_buf = &spi_transfer->txData[1];
+
 	return -EIO;
 }

@@ -208,8 +208,10 @@ void tsc_task(void *pvParameters)
 
 }
 
-int tsc_registers(uint8_t *rx_buf, uint8_t *tx_buf)
+int tsc_registers(dspi_transfer_t *spi_transfer)
 {
+	uint8_t *rx_buf = spi_transfer->rxData;
+	uint8_t *tx_buf = &spi_transfer->txData[1];
 	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_TSCREG:
@@ -250,11 +252,24 @@ int tsc_registers(uint8_t *rx_buf, uint8_t *tx_buf)
 			return -ENOENT;
 		}
 	} else if (rx_buf[0] == APALIS_TK1_K20_BULK_READ_INST) {
-		switch (rx_buf[1]){
-		case APALIS_TK1_K20_TSC_XML:
-			tx_buf[0] = gen_regs.tsc_xm & 0xFF;
-			tx_buf[1] = (gen_regs.tsc_xm >> 8) & 0xFF;
-			return 2;
+		if (rx_buf[2] == APALIS_TK1_K20_TSC_XML) {
+			if (rx_buf[1] == 2) {
+				tx_buf[0] = gen_regs.tsc_xm & 0xFF;
+				tx_buf[1] = (gen_regs.tsc_xm >> 8) & 0xFF;
+				return 2;
+			} else if (rx_buf[1] == 8) {
+				tx_buf[0] = gen_regs.tsc_xm & 0xFF;
+				tx_buf[1] = (gen_regs.tsc_xm >> 8) & 0xFF;
+				tx_buf[2] = gen_regs.tsc_xp & 0xFF;
+				tx_buf[3] = (gen_regs.tsc_xp >> 8) & 0xFF;
+				tx_buf[4] = gen_regs.tsc_ym & 0xFF;
+				tx_buf[5] = (gen_regs.tsc_ym >> 8) & 0xFF;
+				tx_buf[6] = gen_regs.tsc_yp & 0xFF;
+				tx_buf[7] = (gen_regs.tsc_yp >> 8) & 0xFF;
+				return 8;
+			}
+		}
+		switch (rx_buf[2]) {
 		case APALIS_TK1_K20_TSC_XPL:
 			tx_buf[0] = gen_regs.tsc_xp & 0xFF;
 			tx_buf[1] = (gen_regs.tsc_xp >> 8) & 0xFF;
@@ -274,8 +289,11 @@ int tsc_registers(uint8_t *rx_buf, uint8_t *tx_buf)
 	return -ENOENT;
 }
 
-int adc_registers(uint8_t *rx_buf, uint8_t *tx_buf)
+int adc_registers(dspi_transfer_t *spi_transfer)
 {
+	uint8_t *rx_buf = spi_transfer->rxData;
+	uint8_t *tx_buf = &spi_transfer->txData[1];
+
 	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_ADCREG:
@@ -316,11 +334,24 @@ int adc_registers(uint8_t *rx_buf, uint8_t *tx_buf)
 			return -ENOENT;
 		}
 	} else if (rx_buf[0] == APALIS_TK1_K20_BULK_READ_INST) {
-		switch (rx_buf[1]){
-		case APALIS_TK1_K20_ADC_CH0L:
-			tx_buf[0] = gen_regs.adc[0] & 0xFF;
-			tx_buf[1] = (gen_regs.adc[0] >> 8) & 0xFF;
-			return 2;
+		if (rx_buf[2] == APALIS_TK1_K20_ADC_CH0L) {
+			if (rx_buf[1] == 2) {
+				tx_buf[0] = gen_regs.adc[0] & 0xFF;
+				tx_buf[1] = (gen_regs.adc[0] >> 8) & 0xFF;
+				return 2;
+			} else if (rx_buf[1] == 8) {
+				tx_buf[0] = gen_regs.adc[0] & 0xFF;
+				tx_buf[1] = (gen_regs.adc[0] >> 8) & 0xFF;
+				tx_buf[2] = gen_regs.adc[1] & 0xFF;
+				tx_buf[3] = (gen_regs.adc[1] >> 8) & 0xFF;
+				tx_buf[4] = gen_regs.adc[2] & 0xFF;
+				tx_buf[5] = (gen_regs.adc[2] >> 8) & 0xFF;
+				tx_buf[6] = gen_regs.adc[3] & 0xFF;
+				tx_buf[7] = (gen_regs.adc[3] >> 8) & 0xFF;
+				return 8;
+			}
+		}
+		switch (rx_buf[2]){
 		case APALIS_TK1_K20_ADC_CH1L:
 			tx_buf[0] = gen_regs.adc[1] & 0xFF;
 			tx_buf[1] = (gen_regs.adc[1] >> 8) & 0xFF;

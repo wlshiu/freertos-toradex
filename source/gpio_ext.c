@@ -89,7 +89,11 @@ uint8_t get_gpio_status(uint8_t pin)
 	return status;
 }
 
-int gpio_registers(uint8_t *rx_buf, uint8_t *tx_buf){
+int gpio_registers(dspi_transfer_t *spi_transfer)
+{
+	uint8_t *rx_buf = spi_transfer->rxData;
+	uint8_t *tx_buf = &spi_transfer->txData[1];
+
 	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_GPIOREG:

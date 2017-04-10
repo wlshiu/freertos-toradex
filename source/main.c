@@ -95,6 +95,11 @@ int main(void) {
 		PRINTF("create SPI task error\r\n");
 	}
 
+	if(xTaskCreate(can_task, "CAN_task", 2000L / sizeof(portSTACK_TYPE), NULL, 2, &can_task_handle) != pdPASS)
+	{
+		PRINTF("create CAN task error\r\n");
+	}
+
 #ifdef BOARD_USES_ADC
 	if(xTaskCreate(adc_task, "ADC_task", 2000L / sizeof(portSTACK_TYPE), NULL, 2, &adc_task_handle) != pdPASS)
 	{

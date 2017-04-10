@@ -29,6 +29,7 @@
 */
 
 #include "fsl_dspi.h"
+#include "com_task.h"
 
 /*******************************************************************************
  * Definitions
@@ -1434,6 +1435,7 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
     uint8_t dummyPattern = DSPI_DUMMY_DATA;
     uint32_t dataReceived;
     uint32_t dataSend = 0;
+    //uint32_t dataCount = 0;
 
     /* Because SPI protocol is synchronous, the number of bytes that that slave received from the
     * master is the actual number of bytes that the slave transmitted to the master. So we only
@@ -1463,6 +1465,13 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
                 }
                 /* Descrease remaining receive byte count */
                 --handle->remainingReceiveByteCount;
+
+            /*    dataCount = handle->totalByteCount - handle->remainingReceiveByteCount;
+
+                if (dataCount == 2 && (*(handle->rxData - 1) == APALIS_TK1_K20_BULK_WRITE_INST)
+                		&& (dataReceived < APALIS_TK1_K20_MAX_BULK))
+                	handle->totalByteCount += dataReceived;
+*/
 
                 if (handle->remainingSendByteCount > 0)
                 {

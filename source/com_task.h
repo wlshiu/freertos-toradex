@@ -43,26 +43,32 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_MAX_BULK			(64)
 
 /* General registers*/
-#define APALIS_TK1_K20_STAREG			0x00 /* General status register RO */
+#define APALIS_TK1_K20_STAREG			0x00 /* general status register RO */
 #define APALIS_TK1_K20_REVREG			0x01 /* FW revision register RO*/
 #define APALIS_TK1_K20_IRQREG			0x02 /* IRQ status RW(write of 1 will reset the bit) */
-#define APALIS_TK1_K20_CTRREG			0x03 /* General control register RW */
+#define APALIS_TK1_K20_CTRREG			0x03 /* general control register RW */
 #define APALIS_TK1_K20_MSQREG			0x04 /* IRQ mask register RW */
 
+/* 0x05-0x0F Reserved */
+
 /* CAN Registers */
-#define APALIS_TK1_K20_CANREG			0x10 /* CAN control & status register RW */
-#define APALIS_TK1_K20_CANERR			0x11 /* Error register RW */
-#define APALIS_TK1_K20_CAN_BAUD_REG		0x12 /* CAN Baud set register RW */
-#define APALIS_TK1_K20_CAN_BIT_1		0x13 /* CAN Bittiming register 1 RW */
-#define APALIS_TK1_K20_CAN_BIT_2		0x14 /* CAN Bittiming register 2 RW */
-#define APALIS_TK1_K20_CAN_IN_BUF_CNT		0x15 /* CAN IN BUF Received Data Count RO */
-#define APALIS_TK1_K20_CAN_IN_BUF		0x16 /* CAN IN BUF RO */
-/* buffer size is 14 bytes */
-#define APALIS_TK1_K20_CAN_OUT_BUF_CNT		0x25 /* CAN OUT BUF  Data Count WO */
-#define APALIS_TK1_K20_CAN_OUT_FIF0		0x26 /* CAN OUT BUF WO */
-/* buffer size is 14 bytes */
-#define APALIS_TK1_K20_CAN_OUT_FIF0_END		0x35 /* CAN OUT BUF END */
-#define APALIS_TK1_K20_CAN_DEV_OFFSET(x)	(x ? 0 : 0x30)
+#define APALIS_TK1_K20_CANREG			0x10 /* CAN0 control & status register RW */
+#define APALIS_TK1_K20_CANERR			0x11 /* CAN0 error register RW */
+#define APALIS_TK1_K20_CAN_BAUD_REG		0x12 /* CAN0 baud set register RW */
+#define APALIS_TK1_K20_CAN_BIT_1		0x13 /* CAN0 bit timing register 1 RW */
+#define APALIS_TK1_K20_CAN_BIT_2		0x14 /* CAN0 bit timing register 2 RW */
+#define APALIS_TK1_K20_CAN_IN_BUF_CNT		0x15 /* CAN0 IN received data count RO */
+#define APALIS_TK1_K20_CAN_IN_BUF		0x16 /* CAN0 IN RO */
+/* buffer size is 13 bytes */
+#define APALIS_TK1_K20_CAN_OUT_BUF_CNT		0x23 /* CAN0 OUT data Count WO */
+#define APALIS_TK1_K20_CAN_OUT_FIF0		0x26 /* CAN0 OUT WO */
+/* buffer size is 13 bytes */
+#define APALIS_TK1_K20_CAN_OUT_BUF_END		(APALIS_TK1_K20_CAN_OUT_FIF0 + 13 - 1)/* CAN OUT BUF END */
+#define APALIS_TK1_K20_CAN_DEV_OFFSET(x)	(x ? 0x30 : 0)
+
+/* 0x33-0x3F Reserved */
+/* 0x40-0x62 CAN1 registers */
+/* 0x63-0x6F Reserved */
 
 /* ADC Registers */
 #define APALIS_TK1_K20_ADCREG			0x70 /* ADC control & status register RW */
@@ -75,6 +81,10 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_ADC_CH3L			0x77 /* ADC Channel 3 LSB RO */
 #define APALIS_TK1_K20_ADC_CH3H			0x78 /* ADC Channel 3 MSB RO */
 /* Bulk read of LSB register can be use to read entire 16-bit in one command */
+/* Bulk read of APALIS_TK1_K20_ADC_CH0L register can be use to read all
+ * ADC channels in one command */
+
+/* 0x79-0x7F reserved */
 
 /* TSC Register */
 #define APALIS_TK1_K20_TSCREG			0x80 /* TSC control & status register RW */
@@ -90,6 +100,8 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_TSC_ENA			BIT(0)
 #define APALIS_TK1_K20_TSC_ENA_MASK		BIT(0)
 
+/* 0x89-0x8F Reserved */
+
 /* GPIO Registers */
 #define APALIS_TK1_K20_GPIOREG			0x90 /* GPIO control & status register RW */
 #define APALIS_TK1_K20_GPIO_NO			0x91 /* currently configured GPIO RW */
@@ -97,6 +109,8 @@ void spi_task(void *pvParameters);
 /* MSB | 0 ... 0 | VALUE | Output-1 / Input-0 | LSB  */
 #define APALIS_TK1_K20_GPIO_STA_OE		BIT(0)
 #define APALIS_TK1_K20_GPIO_STA_VAL		BIT(1)
+
+/* 0x93-0xFF Reserved */
 
 /* Interrupt flags */
 #define APALIS_TK1_K20_GEN_IRQ			0
@@ -109,10 +123,12 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_FW_VER			0x09
 
 #define FW_MINOR (APALIS_TK1_K20_FW_VER & 0x0F)
-#define FW_MAJOR ((APALIS_TK1_K20_FW_VER & 0xF0) >> 8)
+#define FW_MAJOR ((APALIS_TK1_K20_FW_VER & 0xF0) >> 4)
 
 #define TK1_K20_SENTINEL			0x55
 #define TK1_K20_INVAL				0xAA
+
+#define APALIS_TK1_K20_HEADER			4
 
 #define ADC0_CHANNEL_CNT	4
 
