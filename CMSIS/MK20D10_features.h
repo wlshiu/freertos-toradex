@@ -1,14 +1,13 @@
 /*
 ** ###################################################################
 **     Version:             rev. 1.12, 2015-06-08
-**     Build:               b160222
+**     Build:               b170228
 **
 **     Abstract:
 **         Chip specific module features.
 **
-**     Copyright (c) 2016 Freescale Semiconductor, Inc.
-**     All rights reserved.
-**
+**     Copyright 2016 Freescale Semiconductor, Inc.
+**     Copyright 2016-2017 NXP
 **     Redistribution and use in source and binary forms, with or without modification,
 **     are permitted provided that the following conditions are met:
 **
@@ -19,7 +18,7 @@
 **       list of conditions and the following disclaimer in the documentation and/or
 **       other materials provided with the distribution.
 **
-**     o Neither the name of Freescale Semiconductor, Inc. nor the names of its
+**     o Neither the name of the copyright holder nor the names of its
 **       contributors may be used to endorse or promote products derived from this
 **       software without specific prior written permission.
 **
@@ -34,8 +33,8 @@
 **     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 **     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **
-**     http:                 www.freescale.com
-**     mail:                 support@freescale.com
+**     http:                 www.nxp.com
+**     mail:                 support@nxp.com
 **
 **     Revisions:
 **     - rev. 1.0 (2012-01-03)
@@ -127,7 +126,7 @@
     /* @brief DRY availability on the SoC. */
     #define FSL_FEATURE_SOC_DRY_COUNT (0)
     /* @brief DSPI availability on the SoC. */
-    #define FSL_FEATURE_SOC_DSPI_COUNT (3)
+    #define FSL_FEATURE_SOC_DSPI_COUNT (2)
     /* @brief EMVSIM availability on the SoC. */
     #define FSL_FEATURE_SOC_EMVSIM_COUNT (0)
     /* @brief ENC availability on the SoC. */
@@ -214,8 +213,8 @@
     #define FSL_FEATURE_SOC_MMAU_COUNT (0)
     /* @brief MMDVSQ availability on the SoC. */
     #define FSL_FEATURE_SOC_MMDVSQ_COUNT (0)
-    /* @brief MPU availability on the SoC. */
-    #define FSL_FEATURE_SOC_MPU_COUNT (1)
+    /* @brief SYSMPU availability on the SoC. */
+    #define FSL_FEATURE_SOC_SYSMPU_COUNT (1)
     /* @brief MSCAN availability on the SoC. */
     #define FSL_FEATURE_SOC_MSCAN_COUNT (0)
     /* @brief MSCM availability on the SoC. */
@@ -237,7 +236,7 @@
     /* @brief OTFAD availability on the SoC. */
     #define FSL_FEATURE_SOC_OTFAD_COUNT (0)
     /* @brief PDB availability on the SoC. */
-    #define FSL_FEATURE_SOC_PDB_COUNT (1)
+    #define FSL_FEATURE_SOC_PDB_COUNT (2)
     /* @brief PCC availability on the SoC. */
     #define FSL_FEATURE_SOC_PCC_COUNT (0)
     /* @brief PGA availability on the SoC. */
@@ -306,6 +305,8 @@
     #define FSL_FEATURE_SOC_USB_COUNT (1)
     /* @brief USBDCD availability on the SoC. */
     #define FSL_FEATURE_SOC_USBDCD_COUNT (1)
+    /* @brief USBHS availability on the SoC. */
+    #define FSL_FEATURE_SOC_USBHS_COUNT (0)
     /* @brief USBHSDCD availability on the SoC. */
     #define FSL_FEATURE_SOC_USBHSDCD_COUNT (0)
     /* @brief USBPHY availability on the SoC. */
@@ -461,8 +462,8 @@
     #define FSL_FEATURE_SOC_MMAU_COUNT (0)
     /* @brief MMDVSQ availability on the SoC. */
     #define FSL_FEATURE_SOC_MMDVSQ_COUNT (0)
-    /* @brief MPU availability on the SoC. */
-    #define FSL_FEATURE_SOC_MPU_COUNT (1)
+    /* @brief SYSMPU availability on the SoC. */
+    #define FSL_FEATURE_SOC_SYSMPU_COUNT (1)
     /* @brief MSCAN availability on the SoC. */
     #define FSL_FEATURE_SOC_MSCAN_COUNT (0)
     /* @brief MSCM availability on the SoC. */
@@ -484,7 +485,7 @@
     /* @brief OTFAD availability on the SoC. */
     #define FSL_FEATURE_SOC_OTFAD_COUNT (0)
     /* @brief PDB availability on the SoC. */
-    #define FSL_FEATURE_SOC_PDB_COUNT (1)
+    #define FSL_FEATURE_SOC_PDB_COUNT (2)
     /* @brief PCC availability on the SoC. */
     #define FSL_FEATURE_SOC_PCC_COUNT (0)
     /* @brief PGA availability on the SoC. */
@@ -553,6 +554,8 @@
     #define FSL_FEATURE_SOC_USB_COUNT (1)
     /* @brief USBDCD availability on the SoC. */
     #define FSL_FEATURE_SOC_USBDCD_COUNT (1)
+    /* @brief USBHS availability on the SoC. */
+    #define FSL_FEATURE_SOC_USBHS_COUNT (0)
     /* @brief USBHSDCD availability on the SoC. */
     #define FSL_FEATURE_SOC_USBHSDCD_COUNT (0)
     /* @brief USBPHY availability on the SoC. */
@@ -709,8 +712,8 @@
     #define FSL_FEATURE_SOC_MMAU_COUNT (0)
     /* @brief MMDVSQ availability on the SoC. */
     #define FSL_FEATURE_SOC_MMDVSQ_COUNT (0)
-    /* @brief MPU availability on the SoC. */
-    #define FSL_FEATURE_SOC_MPU_COUNT (1)
+    /* @brief SYSMPU availability on the SoC. */
+    #define FSL_FEATURE_SOC_SYSMPU_COUNT (1)
     /* @brief MSCAN availability on the SoC. */
     #define FSL_FEATURE_SOC_MSCAN_COUNT (0)
     /* @brief MSCM availability on the SoC. */
@@ -732,7 +735,7 @@
     /* @brief OTFAD availability on the SoC. */
     #define FSL_FEATURE_SOC_OTFAD_COUNT (0)
     /* @brief PDB availability on the SoC. */
-    #define FSL_FEATURE_SOC_PDB_COUNT (1)
+    #define FSL_FEATURE_SOC_PDB_COUNT (2)
     /* @brief PCC availability on the SoC. */
     #define FSL_FEATURE_SOC_PCC_COUNT (0)
     /* @brief PGA availability on the SoC. */
@@ -801,6 +804,8 @@
     #define FSL_FEATURE_SOC_USB_COUNT (1)
     /* @brief USBDCD availability on the SoC. */
     #define FSL_FEATURE_SOC_USBDCD_COUNT (1)
+    /* @brief USBHS availability on the SoC. */
+    #define FSL_FEATURE_SOC_USBHS_COUNT (0)
     /* @brief USBHSDCD availability on the SoC. */
     #define FSL_FEATURE_SOC_USBHSDCD_COUNT (0)
     /* @brief USBPHY availability on the SoC. */
@@ -976,6 +981,8 @@
     #define FSL_FEATURE_FLASH_HAS_MCM_FLASH_CACHE_CONTROLS (0)
     /* @brief Has flash cache control in MSCM module. */
     #define FSL_FEATURE_FLASH_HAS_MSCM_FLASH_CACHE_CONTROLS (0)
+    /* @brief Has prefetch speculation control in flash, such as kv5x. */
+    #define FSL_FEATURE_FLASH_PREFETCH_SPECULATION_CONTROL_IN_FLASH (0)
     /* @brief P-Flash start address. */
     #define FSL_FEATURE_FLASH_PFLASH_START_ADDRESS (0x00000000)
     /* @brief P-Flash block count. */
@@ -990,6 +997,8 @@
     #define FSL_FEATURE_FLASH_PFLASH_BLOCK_DATA_PATH_WIDTH (8)
     /* @brief P-Flash block swap feature. */
     #define FSL_FEATURE_FLASH_HAS_PFLASH_BLOCK_SWAP (1)
+    /* @brief P-Flash protection region count. */
+    #define FSL_FEATURE_FLASH_PFLASH_PROTECTION_REGION_COUNT (32)
     /* @brief Has FlexNVM memory. */
     #define FSL_FEATURE_FLASH_HAS_FLEX_NVM (0)
     /* @brief FlexNVM start address. (Valid only if FlexNVM is available.) */
@@ -1159,6 +1168,8 @@
     #define FSL_FEATURE_FLASH_HAS_MCM_FLASH_CACHE_CONTROLS (0)
     /* @brief Has flash cache control in MSCM module. */
     #define FSL_FEATURE_FLASH_HAS_MSCM_FLASH_CACHE_CONTROLS (0)
+    /* @brief Has prefetch speculation control in flash, such as kv5x. */
+    #define FSL_FEATURE_FLASH_PREFETCH_SPECULATION_CONTROL_IN_FLASH (0)
     /* @brief P-Flash start address. */
     #define FSL_FEATURE_FLASH_PFLASH_START_ADDRESS (0x00000000)
     /* @brief P-Flash block count. */
@@ -1173,6 +1184,8 @@
     #define FSL_FEATURE_FLASH_PFLASH_BLOCK_DATA_PATH_WIDTH (8)
     /* @brief P-Flash block swap feature. */
     #define FSL_FEATURE_FLASH_HAS_PFLASH_BLOCK_SWAP (1)
+    /* @brief P-Flash protection region count. */
+    #define FSL_FEATURE_FLASH_PFLASH_PROTECTION_REGION_COUNT (32)
     /* @brief Has FlexNVM memory. */
     #define FSL_FEATURE_FLASH_HAS_FLEX_NVM (0)
     /* @brief FlexNVM start address. (Valid only if FlexNVM is available.) */
@@ -1342,6 +1355,8 @@
     #define FSL_FEATURE_FLASH_HAS_MCM_FLASH_CACHE_CONTROLS (0)
     /* @brief Has flash cache control in MSCM module. */
     #define FSL_FEATURE_FLASH_HAS_MSCM_FLASH_CACHE_CONTROLS (0)
+    /* @brief Has prefetch speculation control in flash, such as kv5x. */
+    #define FSL_FEATURE_FLASH_PREFETCH_SPECULATION_CONTROL_IN_FLASH (0)
     /* @brief P-Flash start address. */
     #define FSL_FEATURE_FLASH_PFLASH_START_ADDRESS (0x00000000)
     /* @brief P-Flash block count. */
@@ -1356,6 +1371,8 @@
     #define FSL_FEATURE_FLASH_PFLASH_BLOCK_DATA_PATH_WIDTH (8)
     /* @brief P-Flash block swap feature. */
     #define FSL_FEATURE_FLASH_HAS_PFLASH_BLOCK_SWAP (0)
+    /* @brief P-Flash protection region count. */
+    #define FSL_FEATURE_FLASH_PFLASH_PROTECTION_REGION_COUNT (32)
     /* @brief Has FlexNVM memory. */
     #define FSL_FEATURE_FLASH_HAS_FLEX_NVM (1)
     /* @brief FlexNVM start address. (Valid only if FlexNVM is available.) */
@@ -1377,7 +1394,7 @@
     /* @brief FlexRAM size. */
     #define FSL_FEATURE_FLASH_FLEX_RAM_SIZE (4096)
     /* @brief Has 0x00 Read 1s Block command. */
-    #define FSL_FEATURE_FLASH_HAS_READ_1S_BLOCK_CMD (0)
+    #define FSL_FEATURE_FLASH_HAS_READ_1S_BLOCK_CMD (1)
     /* @brief Has 0x01 Read 1s Section command. */
     #define FSL_FEATURE_FLASH_HAS_READ_1S_SECTION_CMD (1)
     /* @brief Has 0x02 Program Check command. */
@@ -1389,7 +1406,7 @@
     /* @brief Has 0x07 Program Phrase command. */
     #define FSL_FEATURE_FLASH_HAS_PROGRAM_PHRASE_CMD (0)
     /* @brief Has 0x08 Erase Flash Block command. */
-    #define FSL_FEATURE_FLASH_HAS_ERASE_FLASH_BLOCK_CMD (0)
+    #define FSL_FEATURE_FLASH_HAS_ERASE_FLASH_BLOCK_CMD (1)
     /* @brief Has 0x09 Erase Flash Sector command. */
     #define FSL_FEATURE_FLASH_HAS_ERASE_FLASH_SECTOR_CMD (1)
     /* @brief Has 0x0B Program Section command. */
@@ -1525,6 +1542,8 @@
     #define FSL_FEATURE_FLASH_HAS_MCM_FLASH_CACHE_CONTROLS (0)
     /* @brief Has flash cache control in MSCM module. */
     #define FSL_FEATURE_FLASH_HAS_MSCM_FLASH_CACHE_CONTROLS (0)
+    /* @brief Has prefetch speculation control in flash, such as kv5x. */
+    #define FSL_FEATURE_FLASH_PREFETCH_SPECULATION_CONTROL_IN_FLASH (0)
     /* @brief P-Flash start address. */
     #define FSL_FEATURE_FLASH_PFLASH_START_ADDRESS (0x00000000)
     /* @brief P-Flash block count. */
@@ -1539,6 +1558,8 @@
     #define FSL_FEATURE_FLASH_PFLASH_BLOCK_DATA_PATH_WIDTH (8)
     /* @brief P-Flash block swap feature. */
     #define FSL_FEATURE_FLASH_HAS_PFLASH_BLOCK_SWAP (0)
+    /* @brief P-Flash protection region count. */
+    #define FSL_FEATURE_FLASH_PFLASH_PROTECTION_REGION_COUNT (32)
     /* @brief Has FlexNVM memory. */
     #define FSL_FEATURE_FLASH_HAS_FLEX_NVM (1)
     /* @brief FlexNVM start address. (Valid only if FlexNVM is available.) */
@@ -1560,7 +1581,7 @@
     /* @brief FlexRAM size. */
     #define FSL_FEATURE_FLASH_FLEX_RAM_SIZE (4096)
     /* @brief Has 0x00 Read 1s Block command. */
-    #define FSL_FEATURE_FLASH_HAS_READ_1S_BLOCK_CMD (0)
+    #define FSL_FEATURE_FLASH_HAS_READ_1S_BLOCK_CMD (1)
     /* @brief Has 0x01 Read 1s Section command. */
     #define FSL_FEATURE_FLASH_HAS_READ_1S_SECTION_CMD (1)
     /* @brief Has 0x02 Program Check command. */
@@ -1572,7 +1593,7 @@
     /* @brief Has 0x07 Program Phrase command. */
     #define FSL_FEATURE_FLASH_HAS_PROGRAM_PHRASE_CMD (0)
     /* @brief Has 0x08 Erase Flash Block command. */
-    #define FSL_FEATURE_FLASH_HAS_ERASE_FLASH_BLOCK_CMD (0)
+    #define FSL_FEATURE_FLASH_HAS_ERASE_FLASH_BLOCK_CMD (1)
     /* @brief Has 0x09 Erase Flash Sector command. */
     #define FSL_FEATURE_FLASH_HAS_ERASE_FLASH_SECTOR_CMD (1)
     /* @brief Has 0x0B Program Section command. */
@@ -1708,6 +1729,8 @@
     #define FSL_FEATURE_FLASH_HAS_MCM_FLASH_CACHE_CONTROLS (0)
     /* @brief Has flash cache control in MSCM module. */
     #define FSL_FEATURE_FLASH_HAS_MSCM_FLASH_CACHE_CONTROLS (0)
+    /* @brief Has prefetch speculation control in flash, such as kv5x. */
+    #define FSL_FEATURE_FLASH_PREFETCH_SPECULATION_CONTROL_IN_FLASH (0)
     /* @brief P-Flash start address. */
     #define FSL_FEATURE_FLASH_PFLASH_START_ADDRESS (0x00000000)
     /* @brief P-Flash block count. */
@@ -1722,6 +1745,8 @@
     #define FSL_FEATURE_FLASH_PFLASH_BLOCK_DATA_PATH_WIDTH (8)
     /* @brief P-Flash block swap feature. */
     #define FSL_FEATURE_FLASH_HAS_PFLASH_BLOCK_SWAP (0)
+    /* @brief P-Flash protection region count. */
+    #define FSL_FEATURE_FLASH_PFLASH_PROTECTION_REGION_COUNT (32)
     /* @brief Has FlexNVM memory. */
     #define FSL_FEATURE_FLASH_HAS_FLEX_NVM (1)
     /* @brief FlexNVM start address. (Valid only if FlexNVM is available.) */
@@ -1743,7 +1768,7 @@
     /* @brief FlexRAM size. */
     #define FSL_FEATURE_FLASH_FLEX_RAM_SIZE (4096)
     /* @brief Has 0x00 Read 1s Block command. */
-    #define FSL_FEATURE_FLASH_HAS_READ_1S_BLOCK_CMD (0)
+    #define FSL_FEATURE_FLASH_HAS_READ_1S_BLOCK_CMD (1)
     /* @brief Has 0x01 Read 1s Section command. */
     #define FSL_FEATURE_FLASH_HAS_READ_1S_SECTION_CMD (1)
     /* @brief Has 0x02 Program Check command. */
@@ -1755,7 +1780,7 @@
     /* @brief Has 0x07 Program Phrase command. */
     #define FSL_FEATURE_FLASH_HAS_PROGRAM_PHRASE_CMD (0)
     /* @brief Has 0x08 Erase Flash Block command. */
-    #define FSL_FEATURE_FLASH_HAS_ERASE_FLASH_BLOCK_CMD (0)
+    #define FSL_FEATURE_FLASH_HAS_ERASE_FLASH_BLOCK_CMD (1)
     /* @brief Has 0x09 Erase Flash Sector command. */
     #define FSL_FEATURE_FLASH_HAS_ERASE_FLASH_SECTOR_CMD (1)
     /* @brief Has 0x0B Program Section command. */
@@ -1879,6 +1904,8 @@
     ((x) == FTM2 ? (2) : (-1))))
 /* @brief Has counter reset by the selected input capture event (register bits C0SC[ICRST], C1SC[ICRST], ...). */
 #define FSL_FEATURE_FTM_HAS_COUNTER_RESET_BY_CAPTURE_EVENT (0)
+/* @brief Has extended deadtime value. */
+#define FSL_FEATURE_FTM_HAS_EXTENDED_DEADTIME_VALUE (0)
 /* @brief Enable pwm output for the module. */
 #define FSL_FEATURE_FTM_HAS_ENABLE_PWM_OUTPUT (0)
 /* @brief Has half-cycle reload for the module. */
@@ -1965,6 +1992,8 @@
 #define FSL_FEATURE_LLWU_HAS_PF (0)
 /* @brief Has possibility to enable reset in low leakage power mode and enable digital filter for RESET pin (register LLWU_RST). */
 #define FSL_FEATURE_LLWU_HAS_RESET_ENABLE (1)
+/* @brief Has no internal module wakeup flag register. */
+#define FSL_FEATURE_LLWU_HAS_NO_INTERNAL_MODULE_WAKEUP_FLAG_REG (0)
 /* @brief Has external pin 0 connected to LLWU device. */
 #define FSL_FEATURE_LLWU_HAS_EXTERNAL_PIN0 (1)
 /* @brief Index of port of external pin. */
@@ -2186,6 +2215,10 @@
 
 /* @brief Has shared interrupt handler with another LPTMR module. */
 #define FSL_FEATURE_LPTMR_HAS_SHARED_IRQ_HANDLER (0)
+/* @brief Whether LPTMR counter is 32 bits width. */
+#define FSL_FEATURE_LPTMR_CNR_WIDTH_IS_32B (0)
+/* @brief Has timer DMA request enable (register bit CSR[TDRE]). */
+#define FSL_FEATURE_LPTMR_HAS_CSR_TDRE (0)
 
 /* MCG module features */
 
@@ -2227,7 +2260,7 @@
 #define FSL_FEATURE_MCG_USE_PLLREFSEL (0)
 /* @brief TBD */
 #define FSL_FEATURE_MCG_USE_SYSTEM_CLOCK (0)
-/* @brief Has phase-locked loop (PLL) (register C5 and bits C6[VDIV], C6[PLLS], C6[LOLIE0], S[PLLST], S[LOCK0], S[LOLS]). */
+/* @brief Has phase-locked loop (PLL) (register C5 and bits C6[VDIV], C6[PLLS], C6[LOLIE0], S[PLLST], S[LOCK0], S[LOLS0]). */
 #define FSL_FEATURE_MCG_HAS_PLL (1)
 /* @brief Has phase-locked loop (PLL) PRDIV (register C5[PRDIV]. */
 #define FSL_FEATURE_MCG_HAS_PLL_PRDIV (1)
@@ -2257,37 +2290,6 @@
 #define FSL_FEATURE_MCG_HAS_PLL_INTERNAL_MODE (0)
 /* @brief Reset clock mode is BLPI. */
 #define FSL_FEATURE_MCG_RESET_IS_BLPI (0)
-
-/* MPU module features */
-
-/* @brief Specifies number of descriptors available. */
-#define FSL_FEATURE_MPU_DESCRIPTOR_COUNT (12)
-/* @brief Has process identifier support. */
-#define FSL_FEATURE_MPU_HAS_PROCESS_IDENTIFIER (0)
-/* @brief Total number of MPU master. */
-#define FSL_FEATURE_MPU_MASTER_COUNT (8)
-/* @brief Total number of MPU master with privileged rights */
-#define FSL_FEATURE_MPU_PRIVILEGED_RIGHTS_MASTER_COUNT (4)
-/* @brief Max index of used MPU master. */
-#define FSL_FEATURE_MPU_MASTER_MAX_INDEX (5)
-/* @brief Max index of used MPU master with privileged rights */
-#define FSL_FEATURE_MPU_PRIVILEGED_RIGHTS_MASTER_MAX_INDEX (2)
-/* @brief Has master 0. */
-#define FSL_FEATURE_MPU_HAS_MASTER0 (1)
-/* @brief Has master 1. */
-#define FSL_FEATURE_MPU_HAS_MASTER1 (1)
-/* @brief Has master 2. */
-#define FSL_FEATURE_MPU_HAS_MASTER2 (1)
-/* @brief Has master 3. */
-#define FSL_FEATURE_MPU_HAS_MASTER3 (0)
-/* @brief Has master 4. */
-#define FSL_FEATURE_MPU_HAS_MASTER4 (1)
-/* @brief Has master 5. */
-#define FSL_FEATURE_MPU_HAS_MASTER5 (1)
-/* @brief Has master 6. */
-#define FSL_FEATURE_MPU_HAS_MASTER6 (0)
-/* @brief Has master 7. */
-#define FSL_FEATURE_MPU_HAS_MASTER7 (0)
 
 /* interrupt module features */
 
@@ -2386,6 +2388,8 @@
 #define FSL_FEATURE_PORT_PCR_MUX_WIDTH (3)
 /* @brief Has dedicated interrupt vector. */
 #define FSL_FEATURE_PORT_HAS_INTERRUPT_VECTOR (1)
+/* @brief Has multiple pin IRQ configuration (register GICLR and GICHR). */
+#define FSL_FEATURE_PORT_HAS_MULTIPLE_IRQ_CONFIG (0)
 /* @brief Defines whether PCR[IRQC] bit-field has flag states. */
 #define FSL_FEATURE_PORT_HAS_IRQC_FLAG (0)
 /* @brief Defines whether PCR[IRQC] bit-field has trigger states. */
@@ -2733,6 +2737,12 @@
 #define FSL_FEATURE_SMC_HAS_PARAM (0)
 /* @brief Has SMC_VERID. */
 #define FSL_FEATURE_SMC_HAS_VERID (0)
+/* @brief Has stop abort flag (register bit PMCTRL[STOPA]). */
+#define FSL_FEATURE_SMC_HAS_PMCTRL_STOPA (1)
+/* @brief Has tamper reset (register bit SRS[TAMPER]). */
+#define FSL_FEATURE_SMC_HAS_SRS_TAMPER (0)
+/* @brief Has security violation reset (register bit SRS[SECVIO]). */
+#define FSL_FEATURE_SMC_HAS_SRS_SECVIO (0)
 
 /* DSPI module features */
 
@@ -2773,6 +2783,17 @@
     /* @brief Has separate DMA RX and TX requests. */
     #define FSL_FEATURE_DSPI_HAS_SEPARATE_DMA_RX_TX_REQn(x) (1)
 #endif /* defined(CPU_MK20DN512VLK10) || defined(CPU_MK20DX256VLK10) */
+
+/* SYSMPU module features */
+
+/* @brief Specifies number of descriptors available. */
+#define FSL_FEATURE_SYSMPU_DESCRIPTOR_COUNT (12)
+/* @brief Has process identifier support. */
+#define FSL_FEATURE_SYSMPU_HAS_PROCESS_IDENTIFIER (0)
+/* @brief Total number of MPU slave. */
+#define FSL_FEATURE_SYSMPU_SLAVE_COUNT (5)
+/* @brief Total number of MPU master. */
+#define FSL_FEATURE_SYSMPU_MASTER_COUNT (6)
 
 /* SysTick module features */
 
@@ -2977,6 +2998,8 @@
 
 /* USB module features */
 
+/* @brief KHCI module instance count */
+#define FSL_FEATURE_USB_KHCI_COUNT (1)
 /* @brief HOST mode enabled */
 #define FSL_FEATURE_USB_KHCI_HOST_ENABLED (1)
 /* @brief OTG mode enabled */

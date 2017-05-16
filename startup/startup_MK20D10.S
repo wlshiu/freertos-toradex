@@ -2,14 +2,13 @@
 /*  @file:    startup_MK20D10.s                                                           */
 /*  @purpose: CMSIS Cortex-M4 Core Device Startup File                                    */
 /*            MK20D10                                                                     */
-/*  @version: 1.8                                                                         */
-/*  @date:    2014-10-14                                                                  */
-/*  @build:   b151210                                                                     */
+/*  @version: 1.9                                                                         */
+/*  @date:    2015-7-29                                                                   */
+/*  @build:   b170112                                                                     */
 /* ---------------------------------------------------------------------------------------*/
 /*                                                                                        */
-/* Copyright (c) 1997 - 2015 , Freescale Semiconductor, Inc.                              */
-/* All rights reserved.                                                                   */
-/*                                                                                        */
+/* Copyright (c) 1997 - 2016, Freescale Semiconductor, Inc.                               */
+/* Copyright 2016 - 2017 NXP                                                              */
 /* Redistribution and use in source and binary forms, with or without modification,       */
 /* are permitted provided that the following conditions are met:                          */
 /*                                                                                        */
@@ -20,7 +19,7 @@
 /*   list of conditions and the following disclaimer in the documentation and/or          */
 /*   other materials provided with the distribution.                                      */
 /*                                                                                        */
-/* o Neither the name of Freescale Semiconductor, Inc. nor the names of its               */
+/* o Neither the name of the copyright holder nor the names of its                        */
 /*   contributors may be used to endorse or promote products derived from this            */
 /*   software without specific prior written permission.                                  */
 /*                                                                                        */
@@ -328,6 +327,8 @@ Reset_Handler:
     ldr     r0, =VTOR
     ldr     r1, =__isr_vector
     str     r1, [r0]
+    ldr     r2, [r1]
+    msr     msp, r2
 #ifndef __NO_SYSTEM_INIT
     ldr   r0,=SystemInit
     blx   r0

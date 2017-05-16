@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015, Freescale Semiconductor, Inc.
- * All rights reserved.
+ * Copyright 2016-2017 NXP
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -12,7 +12,7 @@
  *   list of conditions and the following disclaimer in the documentation and/or
  *   other materials provided with the distribution.
  *
- * o Neither the name of Freescale Semiconductor, Inc. nor the names of its
+ * o Neither the name of the copyright holder nor the names of its
  *   contributors may be used to endorse or promote products derived from this
  *   software without specific prior written permission.
  *
@@ -111,7 +111,7 @@ typedef enum _rcm_reset_source
 } rcm_reset_source_t;
 
 /*!
- * @brief Reset pin filter select in Run and Wait modes
+ * @brief Reset pin filter select in Run and Wait modes.
  */
 typedef enum _rcm_run_wait_filter_mode
 {
@@ -135,7 +135,7 @@ typedef enum _rcm_boot_rom_config
 
 #if (defined(FSL_FEATURE_RCM_HAS_SRIE) && FSL_FEATURE_RCM_HAS_SRIE)
 /*!
- * @brief Max delay time from interrupt asserts to system reset.
+ * @brief Maximum delay time from interrupt asserts to system reset.
  */
 typedef enum _rcm_reset_delay
 {
@@ -186,7 +186,7 @@ typedef struct _rcm_version_id
 #endif
 
 /*!
- * @brief Reset pin filter configuration
+ * @brief Reset pin filter configuration.
  */
 typedef struct _rcm_reset_pin_filter_config
 {
@@ -213,7 +213,7 @@ extern "C" {
  * the minor version number, and the feature specification number.
  *
  * @param base RCM peripheral base address.
- * @param versionId     Pointer to version ID structure.
+ * @param versionId     Pointer to the version ID structure.
  */
 static inline void RCM_GetVersionId(RCM_Type *base, rcm_version_id_t *versionId)
 {
@@ -228,7 +228,7 @@ static inline void RCM_GetVersionId(RCM_Type *base, rcm_version_id_t *versionId)
  * This function gets the RCM parameter that indicates whether the corresponding reset source is implemented.
  * Use source masks defined in the rcm_reset_source_t to get the desired source status.
  *
- * Example:
+ * This is an example.
    @code
    uint32_t status;
 
@@ -251,7 +251,7 @@ static inline uint32_t RCM_GetResetSourceImplementedStatus(RCM_Type *base)
  * This function gets the current reset source status. Use source masks
  * defined in the rcm_reset_source_t to get the desired source status.
  *
- * Example:
+ * This is an example.
    @code
    uint32_t resetStatus;
 
@@ -282,9 +282,9 @@ static inline uint32_t RCM_GetPreviousResetSources(RCM_Type *base)
  * @brief Gets the sticky reset source status.
  *
  * This function gets the current reset source status that has not been cleared
- * by software for some specific source.
+ * by software for a specific source.
  *
- * Example:
+ * This is an example.
    @code
    uint32_t resetStatus;
 
@@ -315,7 +315,7 @@ static inline uint32_t RCM_GetStickyResetSources(RCM_Type *base)
  *
  * This function clears the sticky system reset flags indicated by source masks.
  *
- * Example:
+ * This is an example.
    @code
    // Clears multiple reset sources.
    RCM_ClearStickyResetSources(kRCM_SourceWdog | kRCM_SourcePin);

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015, Freescale Semiconductor, Inc.
- * All rights reserved.
+ * Copyright 2016-2017 NXP
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -12,14 +12,14 @@
  *   list of conditions and the following disclaimer in the documentation and/or
  *   other materials provided with the distribution.
  *
- * o Neither the name of Freescale Semiconductor, Inc. nor the names of its
+ * o Neither the name of the copyright holder nor the names of its
  *   contributors may be used to endorse or promote products derived from this
  *   software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SDRVL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
  * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
@@ -37,17 +37,17 @@
  * @{
  */
 
-
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
 
 /*! @name Driver version */
 /*@{*/
-/*! Version 2.0.1. */
-#define FSL_PORT_DRIVER_VERSION (MAKE_VERSION(2, 0, 1))
+/*! Version 2.0.2. */
+#define FSL_PORT_DRIVER_VERSION (MAKE_VERSION(2, 0, 2))
 /*@}*/
 
+#if defined(FSL_FEATURE_PORT_HAS_PULL_ENABLE) && FSL_FEATURE_PORT_HAS_PULL_ENABLE
 /*! @brief Internal resistor pull feature selection */
 enum _port_pull
 {
@@ -55,36 +55,43 @@ enum _port_pull
     kPORT_PullDown = 2U,    /*!< Internal pull-down resistor is enabled. */
     kPORT_PullUp = 3U,      /*!< Internal pull-up resistor is enabled. */
 };
+#endif /* FSL_FEATURE_PORT_HAS_PULL_ENABLE */
 
+#if defined(FSL_FEATURE_PORT_HAS_SLEW_RATE) && FSL_FEATURE_PORT_HAS_SLEW_RATE
 /*! @brief Slew rate selection */
 enum _port_slew_rate
 {
     kPORT_FastSlewRate = 0U, /*!< Fast slew rate is configured. */
     kPORT_SlowSlewRate = 1U, /*!< Slow slew rate is configured. */
 };
+#endif /* FSL_FEATURE_PORT_HAS_SLEW_RATE */
 
 #if defined(FSL_FEATURE_PORT_HAS_OPEN_DRAIN) && FSL_FEATURE_PORT_HAS_OPEN_DRAIN
-/*! @brief Internal resistor pull feature enable/disable */
+/*! @brief Open Drain feature enable/disable */
 enum _port_open_drain_enable
 {
-    kPORT_OpenDrainDisable = 0U, /*!< Internal pull-down resistor is disabled. */
-    kPORT_OpenDrainEnable = 1U,  /*!< Internal pull-up resistor is enabled. */
+    kPORT_OpenDrainDisable = 0U, /*!< Open drain output is disabled. */
+    kPORT_OpenDrainEnable = 1U,  /*!< Open drain output is enabled. */
 };
 #endif /* FSL_FEATURE_PORT_HAS_OPEN_DRAIN */
 
+#if defined(FSL_FEATURE_PORT_HAS_PASSIVE_FILTER) && FSL_FEATURE_PORT_HAS_PASSIVE_FILTER
 /*! @brief Passive filter feature enable/disable */
 enum _port_passive_filter_enable
 {
-    kPORT_PassiveFilterDisable = 0U, /*!< Fast slew rate is configured. */
-    kPORT_PassiveFilterEnable = 1U,  /*!< Slow slew rate is configured. */
+    kPORT_PassiveFilterDisable = 0U, /*!< Passive input filter is disabled. */
+    kPORT_PassiveFilterEnable = 1U,  /*!< Passive input filter is enabled. */
 };
+#endif
 
+#if defined(FSL_FEATURE_PORT_HAS_DRIVE_STRENGTH) && FSL_FEATURE_PORT_HAS_DRIVE_STRENGTH
 /*! @brief Configures the drive strength. */
 enum _port_drive_strength
 {
     kPORT_LowDriveStrength = 0U,  /*!< Low-drive strength is configured. */
     kPORT_HighDriveStrength = 1U, /*!< High-drive strength is configured. */
 };
+#endif /* FSL_FEATURE_PORT_HAS_DRIVE_STRENGTH */
 
 #if defined(FSL_FEATURE_PORT_HAS_PIN_CONTROL_LOCK) && FSL_FEATURE_PORT_HAS_PIN_CONTROL_LOCK
 /*! @brief Unlock/lock the pin control register field[15:0] */
@@ -95,6 +102,7 @@ enum _port_lock_register
 };
 #endif /* FSL_FEATURE_PORT_HAS_PIN_CONTROL_LOCK */
 
+#if defined(FSL_FEATURE_PORT_PCR_MUX_WIDTH) && FSL_FEATURE_PORT_PCR_MUX_WIDTH
 /*! @brief Pin mux selection */
 typedef enum _port_mux
 {
@@ -106,7 +114,16 @@ typedef enum _port_mux
     kPORT_MuxAlt5 = 5U,             /*!< Chip-specific */
     kPORT_MuxAlt6 = 6U,             /*!< Chip-specific */
     kPORT_MuxAlt7 = 7U,             /*!< Chip-specific */
+    kPORT_MuxAlt8 = 8U,             /*!< Chip-specific */
+    kPORT_MuxAlt9 = 9U,             /*!< Chip-specific */
+    kPORT_MuxAlt10 = 10U,           /*!< Chip-specific */
+    kPORT_MuxAlt11 = 11U,           /*!< Chip-specific */
+    kPORT_MuxAlt12 = 12U,           /*!< Chip-specific */
+    kPORT_MuxAlt13 = 13U,           /*!< Chip-specific */
+    kPORT_MuxAlt14 = 14U,           /*!< Chip-specific */
+    kPORT_MuxAlt15 = 15U,           /*!< Chip-specific */
 } port_mux_t;
+#endif /* FSL_FEATURE_PORT_PCR_MUX_WIDTH */
 
 /*! @brief Configures the interrupt generation condition. */
 typedef enum _port_interrupt
@@ -149,44 +166,76 @@ typedef struct _port_digital_filter_config
 } port_digital_filter_config_t;
 #endif /* FSL_FEATURE_PORT_HAS_DIGITAL_FILTER */
 
+#if defined(FSL_FEATURE_PORT_PCR_MUX_WIDTH) && FSL_FEATURE_PORT_PCR_MUX_WIDTH
 /*! @brief PORT pin configuration structure */
 typedef struct _port_pin_config
 {
+#if defined(FSL_FEATURE_PORT_HAS_PULL_ENABLE) && FSL_FEATURE_PORT_HAS_PULL_ENABLE
     uint16_t pullSelect : 2; /*!< No-pull/pull-down/pull-up select */
-    uint16_t slewRate : 1;   /*!< Fast/slow slew rate Configure */
+#else
+    uint16_t : 2;
+#endif /* FSL_FEATURE_PORT_HAS_PULL_ENABLE */
+
+#if defined(FSL_FEATURE_PORT_HAS_SLEW_RATE) && FSL_FEATURE_PORT_HAS_SLEW_RATE
+    uint16_t slewRate : 1; /*!< Fast/slow slew rate Configure */
+#else
     uint16_t : 1;
+#endif /* FSL_FEATURE_PORT_HAS_SLEW_RATE */
+
+    uint16_t : 1;
+
+#if defined(FSL_FEATURE_PORT_HAS_PASSIVE_FILTER) && FSL_FEATURE_PORT_HAS_PASSIVE_FILTER
     uint16_t passiveFilterEnable : 1; /*!< Passive filter enable/disable */
+#else
+    uint16_t : 1;
+#endif /* FSL_FEATURE_PORT_HAS_PASSIVE_FILTER */
+
 #if defined(FSL_FEATURE_PORT_HAS_OPEN_DRAIN) && FSL_FEATURE_PORT_HAS_OPEN_DRAIN
     uint16_t openDrainEnable : 1; /*!< Open drain enable/disable */
 #else
     uint16_t : 1;
-#endif                          /* FSL_FEATURE_PORT_HAS_OPEN_DRAIN */
+#endif /* FSL_FEATURE_PORT_HAS_OPEN_DRAIN */
+
+#if defined(FSL_FEATURE_PORT_HAS_DRIVE_STRENGTH) && FSL_FEATURE_PORT_HAS_DRIVE_STRENGTH
     uint16_t driveStrength : 1; /*!< Fast/slow drive strength configure */
+#else
     uint16_t : 1;
+#endif
+
+    uint16_t : 1;
+
+#if defined(FSL_FEATURE_PORT_PCR_MUX_WIDTH) && FSL_FEATURE_PORT_PCR_MUX_WIDTH
     uint16_t mux : 3; /*!< Pin mux Configure */
+#else
+    uint16_t : 3;
+#endif
+
     uint16_t : 4;
+
 #if defined(FSL_FEATURE_PORT_HAS_PIN_CONTROL_LOCK) && FSL_FEATURE_PORT_HAS_PIN_CONTROL_LOCK
     uint16_t lockRegister : 1; /*!< Lock/unlock the PCR field[15:0] */
 #else
     uint16_t : 1;
 #endif /* FSL_FEATURE_PORT_HAS_PIN_CONTROL_LOCK */
 } port_pin_config_t;
+#endif /* FSL_FEATURE_PORT_PCR_MUX_WIDTH */
 
 /*******************************************************************************
- * API
- ******************************************************************************/
+* API
+******************************************************************************/
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+#if defined(FSL_FEATURE_PORT_PCR_MUX_WIDTH) && FSL_FEATURE_PORT_PCR_MUX_WIDTH
 /*! @name Configuration */
 /*@{*/
 
 /*!
  * @brief Sets the port PCR register.
  *
- * This is an example to define an input pin or output pin PCR configuration:
+ * This is an example to define an input pin or output pin PCR configuration.
  * @code
  * // Define a digital input pin PCR configuration
  * port_pin_config_t config = {
@@ -214,7 +263,7 @@ static inline void PORT_SetPinConfig(PORT_Type *base, uint32_t pin, const port_p
 /*!
  * @brief Sets the port PCR register for multiple pins.
  *
- * This is an example to define input pins or output pins PCR configuration:
+ * This is an example to define input pins or output pins PCR configuration.
  * @code
  * // Define a digital input pin PCR configuration
  * port_pin_config_t config = {
@@ -273,6 +322,7 @@ static inline void PORT_SetPinMux(PORT_Type *base, uint32_t pin, port_mux_t mux)
 {
     base->PCR[pin] = (base->PCR[pin] & ~PORT_PCR_MUX_MASK) | PORT_PCR_MUX(mux);
 }
+#endif /* FSL_FEATURE_PORT_PCR_MUX_WIDTH */
 
 #if defined(FSL_FEATURE_PORT_HAS_DIGITAL_FILTER) && FSL_FEATURE_PORT_HAS_DIGITAL_FILTER
 
@@ -352,7 +402,7 @@ static inline void PORT_SetPinInterruptConfig(PORT_Type *base, uint32_t pin, por
  *
  * @param base PORT peripheral base pointer.
  * @return Current port interrupt status flags, for example, 0x00010001 means the
- *         pin 0 and 17 have the interrupt.
+ *         pin 0 and 16 have the interrupt.
  */
 static inline uint32_t PORT_GetPinsInterruptFlags(PORT_Type *base)
 {

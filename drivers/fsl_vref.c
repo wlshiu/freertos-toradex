@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015, Freescale Semiconductor, Inc.
- * All rights reserved.
+ * Copyright 2016-2017 NXP
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -12,7 +12,7 @@
  *   list of conditions and the following disclaimer in the documentation and/or
  *   other materials provided with the distribution.
  *
- * o Neither the name of Freescale Semiconductor, Inc. nor the names of its
+ * o Neither the name of the copyright holder nor the names of its
  *   contributors may be used to endorse or promote products derived from this
  *   software without specific prior written permission.
  *
@@ -50,8 +50,10 @@ static uint32_t VREF_GetInstance(VREF_Type *base);
 /*! @brief Pointers to VREF bases for each instance. */
 static VREF_Type *const s_vrefBases[] = VREF_BASE_PTRS;
 
+#if !(defined(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL)
 /*! @brief Pointers to VREF clocks for each instance. */
 static const clock_ip_name_t s_vrefClocks[] = VREF_CLOCKS;
+#endif /* FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL */
 
 /*******************************************************************************
  * Code
@@ -62,7 +64,7 @@ static uint32_t VREF_GetInstance(VREF_Type *base)
     uint32_t instance;
 
     /* Find the instance index from base address mappings. */
-    for (instance = 0; instance < FSL_FEATURE_SOC_VREF_COUNT; instance++)
+    for (instance = 0; instance < ARRAY_SIZE(s_vrefBases); instance++)
     {
         if (s_vrefBases[instance] == base)
         {
@@ -70,7 +72,7 @@ static uint32_t VREF_GetInstance(VREF_Type *base)
         }
     }
 
-    assert(instance < FSL_FEATURE_SOC_VREF_COUNT);
+    assert(instance < ARRAY_SIZE(s_vrefBases));
 
     return instance;
 }
@@ -81,8 +83,10 @@ void VREF_Init(VREF_Type *base, const vref_config_t *config)
 
     uint8_t reg = 0U;
 
+#if !(defined(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL)
     /* Ungate clock for VREF */
     CLOCK_EnableClock(s_vrefClocks[VREF_GetInstance(base)]);
+#endif /* FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL */
 
 /* Configure VREF to a known state */
 #if defined(FSL_FEATURE_VREF_HAS_CHOP_OSC) && FSL_FEATURE_VREF_HAS_CHOP_OSC
@@ -141,8 +145,10 @@ void VREF_Init(VREF_Type *base, const vref_config_t *config)
 
 void VREF_Deinit(VREF_Type *base)
 {
+#if !(defined(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL)
     /* Gate clock for VREF */
     CLOCK_DisableClock(s_vrefClocks[VREF_GetInstance(base)]);
+#endif /* FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL */
 }
 
 void VREF_GetDefaultConfig(vref_config_t *config)

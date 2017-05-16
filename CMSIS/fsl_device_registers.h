@@ -1,7 +1,6 @@
 /*
- * Copyright (c) 2014 - 2015, Freescale Semiconductor, Inc.
- * All rights reserved.
- *
+ * Copyright (c) 2014 - 2016, Freescale Semiconductor, Inc.
+ * Copyright 2016 - 2017 NXP
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
  *
@@ -12,7 +11,7 @@
  *   list of conditions and the following disclaimer in the documentation and/or
  *   other materials provided with the distribution.
  *
- * o Neither the name of Freescale Semiconductor, Inc. nor the names of its
+ * o Neither the name of the copyright holder nor the names of its
  *   contributors may be used to endorse or promote products derived from this
  *   software without specific prior written permission.
  *
@@ -26,6 +25,7 @@
  * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
 #ifndef __FSL_DEVICE_REGISTERS_H__
@@ -36,10 +36,10 @@
  *
  * The CPU macro should be declared in the project or makefile.
  */
-#if (defined(CPU_MK20DN512VLK10) || defined(CPU_MK20DX256VLK10) || defined(CPU_MK20DN512VLL10) || \
-    defined(CPU_MK20DX256VLL10) || defined(CPU_MK20DX128VLQ10) || defined(CPU_MK20DX256VLQ10) || \
-    defined(CPU_MK20DN512VLQ10) || defined(CPU_MK20DX256VMC10) || defined(CPU_MK20DN512VMC10) || \
-    defined(CPU_MK20DX128VMD10) || defined(CPU_MK20DX256VMD10) || defined(CPU_MK20DN512VMD10))
+#if (defined(CPU_MK20DN512VLK10) || defined(CPU_MK20DN512VLL10) || defined(CPU_MK20DN512VLQ10) || \
+    defined(CPU_MK20DN512VMC10) || defined(CPU_MK20DN512VMD10) || defined(CPU_MK20DX128VLQ10) || \
+    defined(CPU_MK20DX128VMD10) || defined(CPU_MK20DX256VLK10) || defined(CPU_MK20DX256VLL10) || \
+    defined(CPU_MK20DX256VLQ10) || defined(CPU_MK20DX256VMC10) || defined(CPU_MK20DX256VMD10))
 
 #define K20D10_SERIES
 
