@@ -138,7 +138,7 @@ void tsc_task(void *pvParameters)
 
 	pin_config_pd.mux = kPORT_MuxAsGpio;
 	pin_config_pd.openDrainEnable = kPORT_OpenDrainDisable;
-	pin_config_pd.pullSelect = kPORT_PullDown;
+	pin_config_pd.pullSelect = kPORT_PullUp;
 	pin_config_pd.slewRate = kPORT_FastSlewRate;
 	pin_config_pd.passiveFilterEnable = kPORT_PassiveFilterDisable;
 	pin_config_pd.driveStrength = kPORT_LowDriveStrength;
@@ -156,12 +156,12 @@ void tsc_task(void *pvParameters)
 	channel.enableInterruptOnConversionCompleted = false;
 
 	while(1) {
-		//Touch detect power Y+, enable pulldown on xp and read xp GPIO
-		ts_force_drive(0, 0, 0, 1);
+		//Touch detect: power Y-, enable pullup on xp and read xp GPIO
+		ts_force_drive(0, 0, 1, 0);
 		PORT_SetPinConfig(PORTB, 6u, &pin_config_pd);
 		vTaskDelay(10);
 		old_status = status;
-		status = GPIO_ReadPinInput(GPIOB, 6u) ? PEN_DOWN:PEN_UP;
+		status = GPIO_ReadPinInput(GPIOB, 6u) ? PEN_UP:PEN_DOWN;
 		PORT_SetPinConfig(PORTB, 6u, &pin_config_ana);
 
 		if (status != old_status)
@@ -213,7 +213,7 @@ int tsc_registers(dspi_transfer_t *spi_transfer)
 	uint8_t *rx_buf = spi_transfer->rxData;
 	uint8_t *tx_buf = &spi_transfer->txData[1];
 	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
-		switch (rx_buf[1]) {
+		switch (rx_buf[2]) {
 		case APALIS_TK1_K20_TSCREG:
 			tx_buf[0] = 0x00;
 			return 1;
@@ -295,7 +295,7 @@ int adc_registers(dspi_transfer_t *spi_transfer)
 	uint8_t *tx_buf = &spi_transfer->txData[1];
 
 	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
-		switch (rx_buf[1]) {
+		switch (rx_buf[2]) {
 		case APALIS_TK1_K20_ADCREG:
 			tx_buf[0] = 0x00;
 			return 1;
