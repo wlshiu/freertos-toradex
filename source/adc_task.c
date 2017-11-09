@@ -41,6 +41,7 @@ static int adc_task_init(void)
 	adc_config.clockDivider = kADC16_ClockDivider8;
 	ADC16_Init(ADC0, &adc_config);
 	ADC16_SetHardwareAverage(ADC0, kADC16_HardwareAverageDisabled);
+	PRINTF("ADC init done \r\n");
 	return 0;
 #else
 	return -ENODEV;
@@ -53,11 +54,12 @@ static int tsc_task_init(void)
 #ifdef BOARD_USES_ADC
 	ADC16_GetDefaultConfig(&adc_config);
 	adc_config.resolution = kADC16_ResolutionSE12Bit;
-	adc_config.longSampleMode = kADC16_LongSampleDisabled;
+	adc_config.longSampleMode = kADC16_LongSampleCycle10;
 	adc_config.clockDivider = kADC16_ClockDivider8;
 	ADC16_Init(ADC1, &adc_config);
 	ADC16_SetChannelMuxMode(ADC1, kADC16_ChannelMuxB);
-	ADC16_SetHardwareAverage(ADC1, kADC16_HardwareAverageCount32);
+	ADC16_SetHardwareAverage(ADC1, kADC16_HardwareAverageCount16);
+	PRINTF("TSC init done \r\n");
 	return 0;
 #else
 	return -ENODEV;

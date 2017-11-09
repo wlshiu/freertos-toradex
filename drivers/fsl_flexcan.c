@@ -392,7 +392,7 @@ static void FLEXCAN_Reset(CAN_Type *base)
     }
 }
 
-static void FLEXCAN_SetBaudRate(CAN_Type *base, uint32_t sourceClock_Hz, uint32_t baudRate_Bps)
+void FLEXCAN_SetBaudRate(CAN_Type *base, uint32_t sourceClock_Hz, uint32_t baudRate_Bps)
 {
     flexcan_timing_config_t timingConfig;
     uint32_t priDiv = baudRate_Bps * FLEXCAN_TIME_QUANTA_NUM;
@@ -550,6 +550,17 @@ void FLEXCAN_SetTimingConfig(CAN_Type *base, const flexcan_timing_config_t *conf
     base->CTRL1 |=
         (CAN_CTRL1_PRESDIV(config->preDivider) | CAN_CTRL1_RJW(config->rJumpwidth) |
          CAN_CTRL1_PSEG1(config->phaseSeg1) | CAN_CTRL1_PSEG2(config->phaseSeg2) | CAN_CTRL1_PROPSEG(config->propSeg));
+
+    /* Exit Freeze Mode. */
+    FLEXCAN_ExitFreezeMode(base);
+}
+
+void FLEXCAN_SetBitRate(CAN_Type *base, uint32_t sourceClock_Hz, uint32_t baudRate_Bps)
+{
+    /* Enter Freeze Mode. */
+    FLEXCAN_EnterFreezeMode(base);
+
+    FLEXCAN_SetBaudRate(base, sourceClock_Hz, baudRate_Bps);
 
     /* Exit Freeze Mode. */
     FLEXCAN_ExitFreezeMode(base);

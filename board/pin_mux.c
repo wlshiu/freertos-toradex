@@ -77,8 +77,8 @@ void BOARD_InitPins(void)
 
 #ifdef SDK_DEBUGCONSOLE
 	/* Debug UART3 pinmux config */
-	PORT_SetPinMux(PORTB, 11u, kPORT_MuxAlt3); /* UART3 TX */
-	PORT_SetPinMux(PORTB, 10u, kPORT_MuxAlt3); /* UART3 RX */
+	PORT_SetPinMux(PORTE, 0u, kPORT_MuxAlt3); /* UART1 TX */
+	PORT_SetPinMux(PORTE, 1u, kPORT_MuxAlt3); /* UART1 RX */
 #endif
 
 #ifdef BOARD_USES_ADC

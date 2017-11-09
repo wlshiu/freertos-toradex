@@ -40,7 +40,7 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_BULK_WRITE_INST		0x3C
 #define APALIS_TK1_K20_BULK_READ_INST		0xC3
 
-#define APALIS_TK1_K20_MAX_BULK			(64)
+#define APALIS_TK1_K20_MAX_BULK			(32)
 
 /* General registers*/
 #define APALIS_TK1_K20_STAREG			0x00 /* general status register RO */
@@ -60,14 +60,15 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_CAN_IN_BUF_CNT		0x15 /* CAN0 IN received data count RO */
 #define APALIS_TK1_K20_CAN_IN_BUF		0x16 /* CAN0 IN RO */
 /* buffer size is 13 bytes */
+#define APALIS_TK1_K20_CAN_IN_BUF_END		0x22 /* CAN0 IN RO */
 #define APALIS_TK1_K20_CAN_OUT_BUF_CNT		0x23 /* CAN0 OUT data Count WO */
-#define APALIS_TK1_K20_CAN_OUT_FIF0		0x26 /* CAN0 OUT WO */
+#define APALIS_TK1_K20_CAN_OUT_BUF		0x26 /* CAN0 OUT WO */
 /* buffer size is 13 bytes */
-#define APALIS_TK1_K20_CAN_OUT_BUF_END		(APALIS_TK1_K20_CAN_OUT_FIF0 + 13 - 1)/* CAN OUT BUF END */
+#define APALIS_TK1_K20_CAN_OUT_BUF_END		(APALIS_TK1_K20_CAN_OUT_BUF + 13 - 1)/* CAN OUT BUF END */
 #define APALIS_TK1_K20_CAN_DEV_OFFSET(x)	(x ? 0x30 : 0)
 
 /* 0x33-0x3F Reserved */
-/* 0x40-0x62 CAN1 registers */
+/* 0x40-0x62 CAN1 registers same layout as CAN0*/
 /* 0x63-0x6F Reserved */
 
 /* ADC Registers */
@@ -110,7 +111,9 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_GPIO_STA_OE		BIT(0)
 #define APALIS_TK1_K20_GPIO_STA_VAL		BIT(1)
 
-/* 0x93-0xFF Reserved */
+/* 0x93-0xFD Reserved */
+#define APALIS_TK1_K20_RET_REQ			0xFE
+/* 0xFF Reserved */
 
 /* Interrupt flags */
 #define APALIS_TK1_K20_GEN_IRQ			0
@@ -120,13 +123,21 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_TSC_IRQ			4
 #define APALIS_TK1_K20_GPIO_IRQ			5
 
-#define APALIS_TK1_K20_FW_VER			0x09
+#define APALIS_TK1_K20_FW_VER			0x0B
 
 #define FW_MINOR (APALIS_TK1_K20_FW_VER & 0x0F)
 #define FW_MAJOR ((APALIS_TK1_K20_FW_VER & 0xF0) >> 4)
 
 #define TK1_K20_SENTINEL			0x55
 #define TK1_K20_INVAL				0xAA
+
+#define APALIS_TK1_K20_NUMREGS			0x3f
+#define APALIS_TK1_K20_IRQ_REG_CNT		1
+#define APALIS_TK1_K20_IRQ_PER_REG		8
+
+#define APALIS_TK1_CAN_CLK_UNIT			6250
+
+#define APALIS_TK1_CAN_RX_BUF_SIZE		1
 
 #define APALIS_TK1_K20_HEADER			4
 

@@ -74,7 +74,8 @@ TaskHandle_t debug_task_handle;
 #ifdef SDK_DEBUGCONSOLE
 static void debug_task(void *pvParameters) {
 	for (;;) {
-		vTaskDelay(10000);
+        vTaskDelay(10000);
+        PRINTF("Alive\r\n");
 	}
 }
 #endif
@@ -90,23 +91,29 @@ int main(void) {
 	PRINTF("Apalis K20 Firmware Version %d.%d\r\n", FW_MAJOR, FW_MINOR);
 
 	/* Create RTOS task */
-	if(xTaskCreate(spi_task, "SPI_task", 2000L / sizeof(portSTACK_TYPE), NULL, 4, &spi_task_handle) != pdPASS)
+	if(xTaskCreate(spi_task, "SPI_task", 1000L / sizeof(portSTACK_TYPE), NULL, 4, &spi_task_handle) != pdPASS)
 	{
 		PRINTF("create SPI task error\r\n");
 	}
 
-	if(xTaskCreate(can_task, "CAN_task", 2000L / sizeof(portSTACK_TYPE), NULL, 2, &can_task_handle) != pdPASS)
+
+	if(xTaskCreate(can0_task, "CAN0_task", 1000L / sizeof(portSTACK_TYPE), NULL, 2, &can0_task_handle) != pdPASS)
 	{
-		PRINTF("create CAN task error\r\n");
+		PRINTF("create CAN0 task error\r\n");
+	}
+
+	if(xTaskCreate(can1_task, "CAN1_task", 1000L / sizeof(portSTACK_TYPE), NULL, 2, &can1_task_handle) != pdPASS)
+	{
+		PRINTF("create CAN1 task error\r\n");
 	}
 
 #ifdef BOARD_USES_ADC
-	if(xTaskCreate(adc_task, "ADC_task", 2000L / sizeof(portSTACK_TYPE), NULL, 2, &adc_task_handle) != pdPASS)
+	if(xTaskCreate(adc_task, "ADC_task", 1000L / sizeof(portSTACK_TYPE), NULL, 2, &adc_task_handle) != pdPASS)
 	{
 		PRINTF("create ADC task error\r\n");
 	}
 
-	if(xTaskCreate(tsc_task, "TSC_task", 2000L / sizeof(portSTACK_TYPE), NULL, 2, &tsc_task_handle) != pdPASS)
+	if(xTaskCreate(tsc_task, "TSC_task", 1000L / sizeof(portSTACK_TYPE), NULL, 2, &tsc_task_handle) != pdPASS)
 	{
 		PRINTF("create TSC task error\r\n");
 	}

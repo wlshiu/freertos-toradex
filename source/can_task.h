@@ -10,9 +10,10 @@
 #include "task.h"
 #include "fsl_dspi.h"
 
-TaskHandle_t can_task_handle;
-void can_task(void *pvParameters);
-int can0_registers(dspi_transfer_t *spi_transfer);
-int can1_registers(dspi_transfer_t *spi_transfer);
+TaskHandle_t can0_task_handle;
+TaskHandle_t can1_task_handle;
+void can0_task(void *pvParameters);
+void can1_task(void *pvParameters);
+int canx_registers(dspi_transfer_t *spi_transfer, int id);
 
 #endif /* SOURCE_CAN_TASK_H_ */

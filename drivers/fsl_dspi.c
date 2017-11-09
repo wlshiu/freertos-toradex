@@ -29,6 +29,7 @@
  */
 
 #include "fsl_dspi.h"
+#include "com_task.h"
 
 /*******************************************************************************
  * Definitions
@@ -1465,10 +1466,18 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
             {
                 if (handle->rxData)
                 {
+                    if ((handle->totalByteCount - handle->remainingReceiveByteCount) == 1){
+                    	if ( *(handle->rxData - 1) ==  APALIS_TK1_K20_BULK_WRITE_INST) {
+                    		handle->remainingReceiveByteCount += dataReceived;
+                    		handle->totalByteCount += dataReceived;
+                    		handle->remainingSendByteCount += dataReceived;
+                    	}
+                    }
                     /* Receive buffer is not null, store data into it */
                     *handle->rxData = dataReceived;
                     ++handle->rxData;
                 }
+
                 /* Descrease remaining receive byte count */
                 --handle->remainingReceiveByteCount;
 

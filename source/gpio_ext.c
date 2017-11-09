@@ -39,8 +39,11 @@ int is_gpio_valid(uint8_t pin)
 	for (i = 0; i < sizeof(gpio_list)/sizeof(struct gpio_id); i++){
 		temp = port_type_to_int(gpio_list[i].port) * 32;
 		temp += gpio_list[i].pin;
-		if ( temp == pin )
+		if ( temp == pin ) {
 			return i;
+		}
+		if (temp > pin)
+			return -EINVAL;
 	}
 
 	return -EINVAL;
@@ -95,7 +98,7 @@ int gpio_registers(dspi_transfer_t *spi_transfer)
 	uint8_t *tx_buf = &spi_transfer->txData[1];
 
 	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
-		switch (rx_buf[1]) {
+		switch (rx_buf[2]) {
 		case APALIS_TK1_K20_GPIOREG:
 			return -ENOENT;
 			break;
@@ -109,7 +112,10 @@ int gpio_registers(dspi_transfer_t *spi_transfer)
 		case APALIS_TK1_K20_GPIO_STA:
 			if (gen_regs.gpio_no != 0xFF){
 				tx_buf[0] = get_gpio_status(gen_regs.gpio_no);
-				return 1;
+				if (tx_buf[0] != 0xFF)
+					return 1;
+				else
+					return -ENOENT;
 			} else
 				return -ENOENT;
 			break;
@@ -124,7 +130,7 @@ int gpio_registers(dspi_transfer_t *spi_transfer)
 		case APALIS_TK1_K20_GPIO_NO:
 			if (is_gpio_valid(rx_buf[2]) >= 0){
 				gen_regs.gpio_no = rx_buf[2];
-				return 0;
+				return 1;
 			} else {
 				gen_regs.gpio_no = 0xFF;
 				return -ENOENT;

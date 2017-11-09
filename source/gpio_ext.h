@@ -26,10 +26,8 @@ struct gpio_id gpio_list [] = {
 		{PORTB, GPIOB, 2},
 		{PORTB, GPIOB, 3},
 #endif
-#ifndef SDK_DEBUGCONSOLE
 		{PORTB, GPIOB, 10},
 		{PORTB, GPIOB, 11},
-#endif
 		{PORTB, GPIOB, 16},
 		{PORTB, GPIOB, 17},
 		{PORTB, GPIOB, 18},
@@ -56,8 +54,10 @@ struct gpio_id gpio_list [] = {
 		{PORTD, GPIOD, 13},
 		{PORTD, GPIOD, 14},
 		{PORTD, GPIOD, 15},
+#ifndef SDK_DEBUGCONSOLE
 		{PORTE, GPIOE, 0},
 		{PORTE, GPIOE, 1},
+#endif
 		{PORTE, GPIOE, 2},
 		{PORTE, GPIOE, 3},
 		{PORTE, GPIOE, 4},
