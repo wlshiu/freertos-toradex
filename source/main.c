@@ -128,6 +128,8 @@ int main(void) {
 
 	NVIC_SetPriority(CAN0_ORed_Message_buffer_IRQn, 5u);
 	NVIC_SetPriority(CAN1_ORed_Message_buffer_IRQn, 5u);
+	NVIC_SetPriority(SPI2_IRQn, 5u);
+	NVIC_SetPriority(DMA0_IRQn, 5u);
 	NVIC_SetPriorityGrouping( 0 );
 	vTaskStartScheduler();
 

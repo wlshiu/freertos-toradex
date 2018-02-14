@@ -4,59 +4,68 @@
 #include "gpio_ext.h"
 #include "adc_task.h"
 
+uint8_t  registers[APALIS_TK1_K20_LAST_REG];
+
 /* Put FW version at known address in binary. Make it 32-bit to have room for the future*/
 const uint32_t __attribute__((section(".FwVersion"), used)) fw_version = APALIS_TK1_K20_FW_VER;
 
 static dspi_slave_handle_t spi_handle;
-static uint8_t slaveRxData[APALIS_TK1_K20_MAX_BULK + APALIS_TK1_K20_HEADER] = {0U};
-static uint8_t slaveTxData[APALIS_TK1_K20_MAX_BULK + APALIS_TK1_K20_HEADER] = {0U};
+static uint8_t slaveRxData[APALIS_TK1_K20_MAX_BULK + APALIS_TK1_K20_HEADER];
+static uint8_t slaveTxData[APALIS_TK1_K20_MAX_BULK + APALIS_TK1_K20_HEADER];
 
+#define SPI_DMA
+
+#ifdef SPI_DMA
+dspi_slave_edma_handle_t g_dspi_edma_s_handle;
+edma_handle_t dspiEdmaSlaveRxHandle;
+edma_handle_t dspiEdmaSlaveTxHandle;
+#endif
 void generate_irq(uint8_t irq) {
-	gen_regs.irq = gen_regs.irq | BIT(irq);
+	registers[APALIS_TK1_K20_IRQREG] |= BIT(irq);
 	/* Toggle INT1 pin */
 	GPIO_TogglePinsOutput(GPIOA, 1u << 16u);
 }
 
 void clear_irq_flag(uint8_t irq) {
-	gen_regs.irq = ~irq & gen_regs.irq;
+	registers[APALIS_TK1_K20_IRQREG] &= ~irq;
 }
 
 uint8_t get_control_reg()
 {
-	return gen_regs.control;
+	return registers[APALIS_TK1_K20_CTRREG];
 
 }
 
 void set_control_reg(uint8_t value)
 {
-	gen_regs.control = value;
+	registers[APALIS_TK1_K20_CTRREG] = value;
 }
 
 uint8_t get_status_reg()
 {
-	return gen_regs.status;
+	return registers[APALIS_TK1_K20_STAREG];
 
 }
 
 void set_status_reg(uint8_t value)
 {
-	gen_regs.status = value;
+	registers[APALIS_TK1_K20_STAREG] = value;
 }
 
 uint8_t get_mask_reg()
 {
-	return gen_regs.irq_mask;
+	return registers[APALIS_TK1_K20_MSQREG];
 
 }
 
 void set_mask_reg(uint8_t value)
 {
-	gen_regs.irq_mask = value;
+	registers[APALIS_TK1_K20_MSQREG] = value;
 }
 
 uint8_t get_irq_reg()
 {
-	return gen_regs.irq;
+	return registers[APALIS_TK1_K20_IRQREG];
 
 }
 
@@ -70,29 +79,8 @@ void set_irq_reg(uint8_t value)
 inline int general_registers(dspi_transfer_t * spi_transfer)
 {
 	uint8_t *rx_buf = spi_transfer->rxData;
-	uint8_t *tx_buf = &spi_transfer->txData[1];
 
-	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
-		switch (rx_buf[2]) {
-		case APALIS_TK1_K20_STAREG:
-			tx_buf[0] = get_status_reg();
-			return 1;
-		case APALIS_TK1_K20_REVREG:
-			tx_buf[0] = APALIS_TK1_K20_FW_VER;
-			return 1;
-		case APALIS_TK1_K20_IRQREG:
-			tx_buf[0] = get_irq_reg();
-			return 1;
-		case APALIS_TK1_K20_CTRREG:
-			tx_buf[0] = get_control_reg();
-			return 1;
-		case APALIS_TK1_K20_MSQREG:
-			tx_buf[0] = get_mask_reg();
-			return 1;
-		default:
-			return -ENOENT;
-		}
-	} else if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
+	if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_STAREG:
 			set_status_reg(rx_buf[2]);
@@ -109,12 +97,12 @@ inline int general_registers(dspi_transfer_t * spi_transfer)
 			set_mask_reg(rx_buf[2]);
 			return 1;
 		default:
-			return -ENOENT;
+			return -ESRCH;
 		}
 	}
 
 
-	return -ENOENT;
+	return -ENXIO;
 }
 
 static void SPI_callback(SPI_Type *base, dspi_slave_handle_t *handle, status_t status, void *userData)
@@ -164,76 +152,120 @@ static void SPI_init() {
 void spi_task(void *pvParameters) {
 	callback_message_t cb_msg;
 	dspi_transfer_t slaveXfer;
-	int ret, retry_size = 0;
-	uint8_t req_register = 0xFF;
+	int ret = 0;
+#ifdef SPI_DMA
+	uint32_t slaveRxChannel, slaveTxChannel;
+	edma_config_t userConfig;
+#endif
 
 	cb_msg.sem = xSemaphoreCreateBinary();
 	spi_handle.userData = &cb_msg;
 	SPI_init();
-	GPIO_SetPinsOutput(GPIOA, 1u << 29u); /* INT2 idle */
+#ifdef SPI_DMA
+	slaveRxChannel = 0U;
+	slaveTxChannel = 1U;
 
-	while(1){
-		slaveXfer.txData = NULL;/* We're not expecting any MISO traffic */
-		slaveXfer.rxData = slaveRxData;
-		slaveXfer.dataSize = 3;
-		slaveXfer.configFlags = kDSPI_SlaveCtar0;
-		/* Wait for instructions from SoC */
-		DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
+	DMAMUX_Init(DMAMUX);
+	DMAMUX_SetSource(DMAMUX, slaveRxChannel, kDmaRequestMux0SPI2Rx);
+	DMAMUX_EnableChannel(DMAMUX, slaveRxChannel);
+	DMAMUX_SetSource(DMAMUX, slaveTxChannel, kDmaRequestMux0SPI2Tx);
+	DMAMUX_EnableChannel(DMAMUX, slaveTxChannel);
+
+	EDMA_GetDefaultConfig(&userConfig);
+	EDMA_Init(DMA0, &userConfig);
+
+	EDMA_CreateHandle(&dspiEdmaSlaveRxHandle, DMA0, slaveRxChannel);
+	EDMA_CreateHandle(&dspiEdmaSlaveTxHandle, DMA0, slaveTxChannel);
+
+	g_dspi_edma_s_handle.userData = &cb_msg;
+	DSPI_SlaveTransferCreateHandleEDMA(SPI2, &g_dspi_edma_s_handle, SPI_callback, &cb_msg, &dspiEdmaSlaveRxHandle, &dspiEdmaSlaveTxHandle);
+#endif
+	registers[APALIS_TK1_K20_REVREG] = APALIS_TK1_K20_FW_VER;
+	GPIO_SetPinsOutput(GPIOA, 1u << 29u); /* INT2 idle */
+	slaveXfer.configFlags = kDSPI_SlaveCtar0;
+
+while(1){
+	slaveXfer.txData = NULL;/* no MISO traffic*/
+	slaveXfer.rxData = slaveRxData;
+	slaveXfer.dataSize = 3;
+	/* Wait for instructions from SoC */
+	ret = DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
+	if ( ret == kStatus_Success) {
+
 		xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
-		GPIO_ClearPinsOutput(GPIOD, 1u << 11u);
 		slaveXfer.txData = slaveTxData;
 		slaveXfer.rxData = slaveRxData;
 
-		if (slaveRxData[0] == APALIS_TK1_K20_WRITE_INST)
-			req_register = slaveRxData[1];
-		else
-			req_register = slaveRxData[2];
-
-		if (req_register <= 0x05) {
-			ret = general_registers(&slaveXfer);
-		} else if ((req_register >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0))
-			&& (req_register <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(0))) {
-			ret = canx_registers(&slaveXfer, 0);
-
-		} else if ((req_register >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1))
-			&& (req_register <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(1))) {
-			ret = canx_registers(&slaveXfer, 1);
-#ifdef BOARD_USES_ADC
-		} else if ((req_register >= APALIS_TK1_K20_ADCREG) && (req_register <= APALIS_TK1_K20_ADC_CH3H)) {
-			ret = adc_registers(&slaveXfer);
-
-		} else if ((req_register >= APALIS_TK1_K20_TSCREG) && (req_register <= APALIS_TK1_K20_TSC_YPH)) {
-			ret = tsc_registers(&slaveXfer);
-#endif
-		} else if ((req_register >= APALIS_TK1_K20_GPIOREG) && (req_register <= APALIS_TK1_K20_GPIO_STA)) {
-			ret = gpio_registers(&slaveXfer);
-
-		} else if (req_register == APALIS_TK1_K20_RET_REQ) {
-			/* something wrong with the SPI peripheral, try resetting it */
-			DSPI_StopTransfer(SPI2);
-			DSPI_Enable(SPI2, false);
-			DSPI_SlaveInit(SPI2, &spi2_slaveConfig);
-			ret = retry_size - 1;
-		} else {
-			/* Register not defined */
-			ret = -EINVAL;
-		}
-
-		if (ret <= 0) {
-			slaveTxData[0] = TK1_K20_INVAL;
-			slaveTxData[1] = TK1_K20_INVAL;
-		} else {
-			slaveTxData[0] = TK1_K20_SENTINEL;
-		}
-
-		if (slaveRxData[0] == APALIS_TK1_K20_READ_INST || slaveRxData[0] == APALIS_TK1_K20_BULK_READ_INST)
+		if (slaveRxData[0] == APALIS_TK1_K20_READ_INST)
 		{
-			slaveXfer.dataSize = (ret > 0) ? (ret + 1):2; /* Extra byte is for sentinel*/
-			retry_size = slaveXfer.dataSize;
-			slaveXfer.rxData = NULL; /* We're not expecting any MOSI traffic */
-			DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
-			GPIO_SetPinsOutput(GPIOD, 1u << 11u);
-			xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
+			/* clear interrupt flags on read; */
+			if ( slaveRxData[1] == APALIS_TK1_K20_IRQREG)
+			{
+				registers[APALIS_TK1_K20_IRQREG] = 0;
+			}
+		}
+		else
+		{
+			if (slaveRxData[1] <= 0x05) {
+				ret = general_registers(&slaveXfer);
+			} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0))
+					&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(0))) {
+				ret = canx_registers(&slaveXfer, 0);
+
+			} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1))
+					&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(1))) {
+				ret = canx_registers(&slaveXfer, 1);
+#ifdef BOARD_USES_ADC
+			} else if ((slaveRxData[1] >= APALIS_TK1_K20_ADCREG) && (slaveRxData[1] <= APALIS_TK1_K20_ADC_CH3H)) {
+				ret = adc_registers(&slaveXfer);
+
+			} else if ((slaveRxData[1] >= APALIS_TK1_K20_TSCREG) && (slaveRxData[1] <= APALIS_TK1_K20_TSC_YPH)) {
+				ret = tsc_registers(&slaveXfer);
+#endif
+			} else if ((slaveRxData[1] >= APALIS_TK1_K20_GPIOREG) && (slaveRxData[1] <= APALIS_TK1_K20_GPIO_STA)) {
+				ret = gpio_registers(&slaveXfer);
+			} else {
+				/* Register not defined */
+				ret = -EINVAL;
+			}
+
+
+			if (ret <= 0) {
+				slaveTxData[0] = TK1_K20_INVAL;
+				slaveTxData[1] = ret;
+				slaveTxData[2] = slaveRxData[0];
+				slaveTxData[3] = slaveRxData[1];
+				slaveTxData[4] = slaveRxData[2];
+				slaveXfer.txData = slaveTxData;
+				ret = 5;
+			}
+
+			if (slaveRxData[0] == APALIS_TK1_K20_BULK_READ_INST)
+			{
+				slaveXfer.dataSize = ret;
+				//retry_size = slaveXfer.dataSize;
+				slaveXfer.rxData = slaveRxData; /* We're not expecting any MOSI traffic, but NULL messes up stuff */
+#ifdef SPI_DMA
+				__disable_irq(); // just to make sure that high can irq rate will not interfere
+				DSPI_SlaveTransferEDMA(SPI2, &g_dspi_edma_s_handle, &slaveXfer);
+				__enable_irq();
+#else
+				DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
+#endif
+				xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
+				if (resume_can != 0) {
+					if (resume_can == 1) {
+						vTaskResume(can0_task_handle);
+						can_calculate_available_data(0);
+					}
+					else {
+						vTaskResume(can1_task_handle);
+						can_calculate_available_data(1);
+					}
+					resume_can = 0;
+				}
+			}
 		}
 	}
+}
 }

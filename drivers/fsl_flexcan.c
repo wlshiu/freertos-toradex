@@ -402,18 +402,19 @@ void FLEXCAN_SetBaudRate(CAN_Type *base, uint32_t sourceClock_Hz, uint32_t baudR
     /* Assertion: Source clock should greater than baud rate * FLEXCAN_TIME_QUANTA_NUM. */
     assert(priDiv <= sourceClock_Hz);
 
+
     if (0 == priDiv)
     {
         priDiv = 1;
     }
 
     priDiv = (sourceClock_Hz / priDiv) - 1;
-
     /* Desired baud rate is too low. */
     if (priDiv > 0xFF)
     {
         priDiv = 0xFF;
     }
+
 
     /* FlexCAN timing setting formula:
      * FLEXCAN_TIME_QUANTA_NUM = 1 + (PSEG1 + 1) + (PSEG2 + 1) + (PROPSEG + 1);
@@ -768,7 +769,7 @@ void FLEXCAN_SetRxFifoConfig(CAN_Type *base, const flexcan_rx_fifo_config_t *con
         FLEXCAN_SetRxMbConfig(base, 4, NULL, false);
         FLEXCAN_SetRxMbConfig(base, 5, NULL, false);
     }
-
+    base->MCR |= CAN_MCR_SRXDIS_MASK;
     /* Exit Freeze Mode. */
     FLEXCAN_ExitFreezeMode(base);
 }

@@ -213,40 +213,9 @@ void tsc_task(void *pvParameters)
 int tsc_registers(dspi_transfer_t *spi_transfer)
 {
 	uint8_t *rx_buf = spi_transfer->rxData;
-	uint8_t *tx_buf = &spi_transfer->txData[1];
-	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
-		switch (rx_buf[2]) {
-		case APALIS_TK1_K20_TSCREG:
-			tx_buf[0] = 0x00;
-			return 1;
-		case APALIS_TK1_K20_TSC_XML:
-			tx_buf[0] = gen_regs.tsc_xm & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_TSC_XMH:
-			tx_buf[0] = (gen_regs.tsc_xm >> 8) & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_TSC_XPL:
-			tx_buf[0] = gen_regs.tsc_xp & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_TSC_XPH:
-			tx_buf[0] = (gen_regs.tsc_xp >> 8) & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_TSC_YML:
-			tx_buf[0] = gen_regs.tsc_ym & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_TSC_YMH:
-			tx_buf[0] = (gen_regs.tsc_ym >> 8) & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_TSC_YPL:
-			tx_buf[0] = gen_regs.tsc_yp & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_TSC_YPH:
-			tx_buf[0] = (gen_regs.tsc_yp >> 8) & 0xFF;
-			return 1;
-		default:
-			return -ENOENT;
-		}
-	} else if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
+	uint8_t *tx_buf = &spi_transfer->txData[0];
+
+	if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_TSCREG:
 			return -ENOENT;
@@ -254,7 +223,7 @@ int tsc_registers(dspi_transfer_t *spi_transfer)
 			return -ENOENT;
 		}
 	} else if (rx_buf[0] == APALIS_TK1_K20_BULK_READ_INST) {
-		if (rx_buf[2] == APALIS_TK1_K20_TSC_XML) {
+		if (rx_buf[1] == APALIS_TK1_K20_TSC_XML) {
 			if (rx_buf[1] == 2) {
 				tx_buf[0] = gen_regs.tsc_xm & 0xFF;
 				tx_buf[1] = (gen_regs.tsc_xm >> 8) & 0xFF;
@@ -271,7 +240,7 @@ int tsc_registers(dspi_transfer_t *spi_transfer)
 				return 8;
 			}
 		}
-		switch (rx_buf[2]) {
+		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_TSC_XPL:
 			tx_buf[0] = gen_regs.tsc_xp & 0xFF;
 			tx_buf[1] = (gen_regs.tsc_xp >> 8) & 0xFF;
@@ -294,41 +263,9 @@ int tsc_registers(dspi_transfer_t *spi_transfer)
 int adc_registers(dspi_transfer_t *spi_transfer)
 {
 	uint8_t *rx_buf = spi_transfer->rxData;
-	uint8_t *tx_buf = &spi_transfer->txData[1];
+	uint8_t *tx_buf = &spi_transfer->txData[0];
 
-	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
-		switch (rx_buf[2]) {
-		case APALIS_TK1_K20_ADCREG:
-			tx_buf[0] = 0x00;
-			return 1;
-		case APALIS_TK1_K20_ADC_CH0L:
-			tx_buf[0] = gen_regs.adc[0] & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_ADC_CH0H:
-			tx_buf[0] = (gen_regs.adc[0] >> 8) & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_ADC_CH1L:
-			tx_buf[0] = gen_regs.adc[1] & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_ADC_CH1H:
-			tx_buf[0] = (gen_regs.adc[1] >> 8) & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_ADC_CH2L:
-			tx_buf[0] = gen_regs.adc[2] & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_ADC_CH2H:
-			tx_buf[0] = (gen_regs.adc[2] >> 8) & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_ADC_CH3L:
-			tx_buf[0] = gen_regs.adc[3] & 0xFF;
-			return 1;
-		case APALIS_TK1_K20_ADC_CH3H:
-			tx_buf[0] = (gen_regs.adc[3] >> 8) & 0xFF;
-			return 1;
-		default:
-			return -ENOENT;
-		}
-	} else if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
+	if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_ADCREG:
 			return -ENOENT;
@@ -336,12 +273,12 @@ int adc_registers(dspi_transfer_t *spi_transfer)
 			return -ENOENT;
 		}
 	} else if (rx_buf[0] == APALIS_TK1_K20_BULK_READ_INST) {
-		if (rx_buf[2] == APALIS_TK1_K20_ADC_CH0L) {
-			if (rx_buf[1] == 2) {
+		if (rx_buf[1] == APALIS_TK1_K20_ADC_CH0L) {
+			if (rx_buf[2] == 2) {
 				tx_buf[0] = gen_regs.adc[0] & 0xFF;
 				tx_buf[1] = (gen_regs.adc[0] >> 8) & 0xFF;
 				return 2;
-			} else if (rx_buf[1] == 8) {
+			} else if (rx_buf[2] == 8) {
 				tx_buf[0] = gen_regs.adc[0] & 0xFF;
 				tx_buf[1] = (gen_regs.adc[0] >> 8) & 0xFF;
 				tx_buf[2] = gen_regs.adc[1] & 0xFF;
@@ -353,7 +290,7 @@ int adc_registers(dspi_transfer_t *spi_transfer)
 				return 8;
 			}
 		}
-		switch (rx_buf[2]){
+		switch (rx_buf[1]){
 		case APALIS_TK1_K20_ADC_CH1L:
 			tx_buf[0] = gen_regs.adc[1] & 0xFF;
 			tx_buf[1] = (gen_regs.adc[1] >> 8) & 0xFF;

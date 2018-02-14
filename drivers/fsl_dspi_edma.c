@@ -1183,30 +1183,55 @@ status_t DSPI_SlaveTransferEDMA(SPI_Type *base, dspi_slave_edma_handle_t *handle
 
     return kStatus_Success;
 }
+#if 0
+static void EDMA_DspiSlaveCallback(edma_handle_t *edmaHandle,
+                                   void *g_dspiEdmaPrivateHandle,
+                                   bool transferDone,
+                                   uint32_t tcds)
+{
+
+    assert(edmaHandle);
+    assert(g_dspiEdmaPrivateHandle);
+
+    dspi_slave_edma_private_handle_t *dspiEdmaPrivateHandle;
+
+
+    dspiEdmaPrivateHandle = (dspi_slave_edma_private_handle_t *)g_dspiEdmaPrivateHandle;
+
+    DSPI_DisableDMA((dspiEdmaPrivateHandle->base), kDSPI_RxDmaEnable | kDSPI_TxDmaEnable);
+    GPIO_ClearPinsOutput(GPIOE, 1u << 5u);
+    dspiEdmaPrivateHandle->handle->state = kDSPI_Idle;
+
+    if (dspiEdmaPrivateHandle->handle->callback)
+    {
+
+        dspiEdmaPrivateHandle->handle->callback(dspiEdmaPrivateHandle->base, dspiEdmaPrivateHandle->handle,
+                                                kStatus_Success, dspiEdmaPrivateHandle->handle->userData);
+    }
+}
+#else
+extern dspi_slave_edma_handle_t g_dspi_edma_s_handle;
 
 static void EDMA_DspiSlaveCallback(edma_handle_t *edmaHandle,
                                    void *g_dspiEdmaPrivateHandle,
                                    bool transferDone,
                                    uint32_t tcds)
 {
+
     assert(edmaHandle);
-    assert(g_dspiEdmaPrivateHandle);
 
-    dspi_slave_edma_private_handle_t *dspiEdmaPrivateHandle;
+    DSPI_DisableDMA(SPI2, kDSPI_RxDmaEnable | kDSPI_TxDmaEnable);
 
-    dspiEdmaPrivateHandle = (dspi_slave_edma_private_handle_t *)g_dspiEdmaPrivateHandle;
+    g_dspi_edma_s_handle.state = kDSPI_Idle;
 
-    DSPI_DisableDMA((dspiEdmaPrivateHandle->base), kDSPI_RxDmaEnable | kDSPI_TxDmaEnable);
-
-    dspiEdmaPrivateHandle->handle->state = kDSPI_Idle;
-
-    if (dspiEdmaPrivateHandle->handle->callback)
+    if (g_dspi_edma_s_handle.callback)
     {
-        dspiEdmaPrivateHandle->handle->callback(dspiEdmaPrivateHandle->base, dspiEdmaPrivateHandle->handle,
-                                                kStatus_Success, dspiEdmaPrivateHandle->handle->userData);
+
+	    g_dspi_edma_s_handle.callback(SPI2, &g_dspi_edma_s_handle,
+                                                kStatus_Success, g_dspi_edma_s_handle.userData);
     }
 }
-
+#endif
 void DSPI_SlaveTransferAbortEDMA(SPI_Type *base, dspi_slave_edma_handle_t *handle)
 {
     assert(handle);

@@ -54,6 +54,7 @@
 #define OSC_ER_CLK_DISABLE                                0U  /*!< Disable external reference clock */
 #define SIM_OSC32KSEL_OSC32KCLK_CLK                       0U  /*!< OSC32KSEL select: OSC32KCLK clock */
 #define SIM_PLLFLLSEL_MCGFLLCLK_CLK                       0U  /*!< PLLFLL select: MCGFLLCLK clock */
+#define SIM_PLLFLLSEL_MCGPLLCLK_CLK                       1U  /*!< PLLFLL select: MCGPLLCLK clock */
 #define BOARD_BOOTCLOCKRUN_CORE_CLOCK             100000000U  /*!< Core clock frequency: 100000000Hz */
 
 /*******************************************************************************
@@ -139,9 +140,9 @@ const mcg_config_t mcgConfig_BOARD_BootClockRUN =
     };
 const sim_clock_config_t simConfig_BOARD_BootClockRUN =
     {
-        .pllFllSel = SIM_PLLFLLSEL_MCGFLLCLK_CLK, /* PLLFLL select: MCGFLLCLK clock */
+        .pllFllSel = SIM_PLLFLLSEL_MCGPLLCLK_CLK, /* PLLFLL select: MCGPLLCLK clock */
         .er32kSrc = SIM_OSC32KSEL_OSC32KCLK_CLK,  /* OSC32KSEL select: OSC32KCLK clock */
-        .clkdiv1 = 0x1130000U,                    /* SIM_CLKDIV1 - OUTDIV1: /1, OUTDIV2: /2, OUTDIV3: /2, OUTDIV4: /4 */
+        .clkdiv1 = 0x01130000U,                    /* SIM_CLKDIV1 - OUTDIV1: /1, OUTDIV2: /2, OUTDIV3: /2, OUTDIV4: /4 */
     };
 const osc_config_t oscConfig_BOARD_BootClockRUN =
     {

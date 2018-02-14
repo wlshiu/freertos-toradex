@@ -22,6 +22,7 @@ struct gpio_id gpio_list [] = {
 		{PORTA, GPIOA, 5},
 		{PORTA, GPIOA, 17},
 #ifndef BOARD_USES_ADC
+		{PORTB, GPIOB, 0},
 		{PORTB, GPIOB, 1},
 		{PORTB, GPIOB, 2},
 		{PORTB, GPIOB, 3},

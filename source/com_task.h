@@ -9,6 +9,9 @@
 #include "fsl_debug_console.h"
 #include "fsl_dspi.h"
 #include "fsl_gpio.h"
+#include "fsl_edma.h"
+#include "fsl_dspi_edma.h"
+#include "fsl_dmamux.h"
 
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
@@ -40,12 +43,12 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_BULK_WRITE_INST		0x3C
 #define APALIS_TK1_K20_BULK_READ_INST		0xC3
 
-#define APALIS_TK1_K20_MAX_BULK			(32)
+#define APALIS_TK1_K20_MAX_BULK			(250)
 
 /* General registers*/
 #define APALIS_TK1_K20_STAREG			0x00 /* general status register RO */
 #define APALIS_TK1_K20_REVREG			0x01 /* FW revision register RO*/
-#define APALIS_TK1_K20_IRQREG			0x02 /* IRQ status RW(write of 1 will reset the bit) */
+#define APALIS_TK1_K20_IRQREG			0x02 /* IRQ status RO(reset of read) */
 #define APALIS_TK1_K20_CTRREG			0x03 /* general control register RW */
 #define APALIS_TK1_K20_MSQREG			0x04 /* IRQ mask register RW */
 
@@ -53,21 +56,22 @@ void spi_task(void *pvParameters);
 
 /* CAN Registers */
 #define APALIS_TK1_K20_CANREG			0x10 /* CAN0 control & status register RW */
-#define APALIS_TK1_K20_CANERR			0x11 /* CAN0 error register RW */
-#define APALIS_TK1_K20_CAN_BAUD_REG		0x12 /* CAN0 baud set register RW */
-#define APALIS_TK1_K20_CAN_BIT_1		0x13 /* CAN0 bit timing register 1 RW */
-#define APALIS_TK1_K20_CAN_BIT_2		0x14 /* CAN0 bit timing register 2 RW */
-#define APALIS_TK1_K20_CAN_IN_BUF_CNT		0x15 /* CAN0 IN received data count RO */
-#define APALIS_TK1_K20_CAN_IN_BUF		0x16 /* CAN0 IN RO */
+#define APALIS_TK1_K20_CANREG_CLR		0x11 /* CAN0 CANREG clear register WO */
+#define APALIS_TK1_K20_CANERR			0x12 /* CAN0 error register RW */
+#define APALIS_TK1_K20_CAN_BAUD_REG		0x13 /* CAN0 baud set register RW */
+#define APALIS_TK1_K20_CAN_BIT_1		0x14 /* CAN0 bit timing register 1 RW */
+#define APALIS_TK1_K20_CAN_BIT_2		0x15 /* CAN0 bit timing register 2 RW */
+#define APALIS_TK1_K20_CAN_IN_BUF_CNT		0x16 /* CAN0 IN received data count RO */
+#define APALIS_TK1_K20_CAN_IN_BUF		0x17 /* CAN0 IN RO */
 /* buffer size is 13 bytes */
-#define APALIS_TK1_K20_CAN_IN_BUF_END		0x22 /* CAN0 IN RO */
-#define APALIS_TK1_K20_CAN_OUT_BUF_CNT		0x23 /* CAN0 OUT data Count WO */
-#define APALIS_TK1_K20_CAN_OUT_BUF		0x26 /* CAN0 OUT WO */
+#define APALIS_TK1_K20_CAN_IN_BUF_END		0x23 /* CAN0 IN RO */
+#define APALIS_TK1_K20_CAN_OUT_BUF		0x24 /* CAN0 OUT WO */
 /* buffer size is 13 bytes */
 #define APALIS_TK1_K20_CAN_OUT_BUF_END		(APALIS_TK1_K20_CAN_OUT_BUF + 13 - 1)/* CAN OUT BUF END */
-#define APALIS_TK1_K20_CAN_DEV_OFFSET(x)	(x ? 0x30 : 0)
+#define APALIS_TK1_K20_CAN_OFFSET		0x30
+#define APALIS_TK1_K20_CAN_DEV_OFFSET(x)	(x ? APALIS_TK1_K20_CAN_OFFSET : 0)
 
-/* 0x33-0x3F Reserved */
+/* 0x30-0x3F Reserved */
 /* 0x40-0x62 CAN1 registers same layout as CAN0*/
 /* 0x63-0x6F Reserved */
 
@@ -111,7 +115,8 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_GPIO_STA_OE		BIT(0)
 #define APALIS_TK1_K20_GPIO_STA_VAL		BIT(1)
 
-/* 0x93-0xFD Reserved */
+/* 0x93-0xFC Reserved */
+#define APALIS_TK1_K20_LAST_REG			0xFD
 #define APALIS_TK1_K20_RET_REQ			0xFE
 /* 0xFF Reserved */
 
@@ -123,7 +128,7 @@ void spi_task(void *pvParameters);
 #define APALIS_TK1_K20_TSC_IRQ			4
 #define APALIS_TK1_K20_GPIO_IRQ			5
 
-#define APALIS_TK1_K20_FW_VER			0x0B
+#define APALIS_TK1_K20_FW_VER			0x0D
 
 #define FW_MINOR (APALIS_TK1_K20_FW_VER & 0x0F)
 #define FW_MAJOR ((APALIS_TK1_K20_FW_VER & 0xF0) >> 4)
@@ -137,7 +142,8 @@ void spi_task(void *pvParameters);
 
 #define APALIS_TK1_CAN_CLK_UNIT			6250
 
-#define APALIS_TK1_CAN_RX_BUF_SIZE		1
+#define APALIS_TK1_CAN_RX_BUF_SIZE		256
+#define APALIS_TK1_MAX_CAN_DMA_XREF		19
 
 #define APALIS_TK1_K20_HEADER			4
 
@@ -158,5 +164,8 @@ struct register_struct {
 	uint16_t tsc_ym;
 	uint16_t tsc_yp;
 } gen_regs;
+
+extern uint8_t  registers[APALIS_TK1_K20_LAST_REG];
+extern uint8_t resume_can;
 
 #endif /* COM_TASK_H_ */

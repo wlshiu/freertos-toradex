@@ -57,7 +57,7 @@
 
 /*! @brief Definition to select sdk or toolchain printf, scanf. */
 #ifndef SDK_DEBUGCONSOLE
-#define SDK_DEBUGCONSOLE 1U
+//#define SDK_DEBUGCONSOLE 1U
 #endif
 
 #if defined(SDK_DEBUGCONSOLE) && !(SDK_DEBUGCONSOLE)
@@ -90,10 +90,10 @@
 #define PUTCHAR DbgConsole_Putchar
 #define GETCHAR DbgConsole_Getchar
 #else /* Select printf, scanf, putchar, getchar of toolchain. */
-#define PRINTF printf
-#define SCANF scanf
-#define PUTCHAR putchar
-#define GETCHAR getchar
+#define PRINTF(x...)
+#define SCANF(x...)
+#define PUTCHAR
+#define GETCHAR
 #endif /* SDK_DEBUGCONSOLE */
 
 /*******************************************************************************

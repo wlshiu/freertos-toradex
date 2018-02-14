@@ -8,8 +8,7 @@
 #define CAN_RTR_FLAG 0x40000000U /* remote transmission request */
 #define CAN_ERR_FLAG 0x20000000U /* error message frame */
 
-#define RX_MESSAGE_BUFFER_NUM0 (0)
-#define TX_MESSAGE_BUFFER_NUM0 (1)
+#define TX_MESSAGE_BUFFER_NUM0 (9)
 
 #define CAN_FRAME_MAX_LEN	8
 #define CAN_HEADER_MAX_LEN	5
@@ -51,12 +50,22 @@ struct can_registers {
 	uint8_t can_err_reg;
 	uint8_t can_mode;
 	uint8_t recived_frames_cnt;
+	uint8_t rx_buf_top;
+	uint8_t rx_buf_bottom;
 };
 
 static flexcan_frame_t tx_frame[2];
-static flexcan_frame_t rx_buffer[2][APALIS_TK1_CAN_RX_BUF_SIZE];
+static uint8_t data_buffer[2][APALIS_TK1_CAN_RX_BUF_SIZE][CAN_TRANSFER_BUF_LEN];
 
 static struct can_registers can_regs[2];
+uint8_t resume_can;
+
+void generate_can_irq(uint8_t id) {
+	if (id == 0)
+		GPIO_TogglePinsOutput(GPIOB, 1u << 8u);
+	else
+		GPIO_TogglePinsOutput(GPIOE, 1u << 26u);
+}
 
 static void flexcan_callback0(CAN_Type *base, flexcan_handle_t *handle, status_t status, uint32_t result, void *userData)
 {
@@ -65,22 +74,17 @@ static void flexcan_callback0(CAN_Type *base, flexcan_handle_t *handle, status_t
 
 	switch (status)
 	{
-	case kStatus_FLEXCAN_RxIdle:
-		if (RX_MESSAGE_BUFFER_NUM0 == result)
-		{
-			cb->async_status = pdTRUE;
-			xSemaphoreGiveFromISR(cb->sem, &reschedule);
-		}
+	case kStatus_FLEXCAN_RxFifoIdle:
+		cb->async_status = pdTRUE;
+		xSemaphoreGiveFromISR(cb->sem, &reschedule);
 		break;
 
 	case kStatus_FLEXCAN_TxIdle:
 		if (TX_MESSAGE_BUFFER_NUM0 == result)
 		{
 			/* write status and gen irq */
-			can_regs[0].can_status_reg |= CANINTF_TX;
-			generate_irq(APALIS_TK1_K20_CAN0_IRQ);
-			cb->async_status = pdFALSE;
-			xSemaphoreGiveFromISR(cb->sem, &reschedule);
+			registers[APALIS_TK1_K20_CANREG] |= CANINTF_TX;
+			generate_can_irq(0);
 		}
 		break;
 
@@ -97,22 +101,17 @@ static void flexcan_callback1(CAN_Type *base, flexcan_handle_t *handle, status_t
 
 	switch (status)
 	{
-	case kStatus_FLEXCAN_RxIdle:
-		if (RX_MESSAGE_BUFFER_NUM0 == result)
-		{
-			cb->async_status = pdTRUE;
-			xSemaphoreGiveFromISR(cb->sem, &reschedule);
-		}
+	case kStatus_FLEXCAN_RxFifoIdle:
+		cb->async_status = pdTRUE;
+		xSemaphoreGiveFromISR(cb->sem, &reschedule);
 		break;
 
 	case kStatus_FLEXCAN_TxIdle:
 		if (TX_MESSAGE_BUFFER_NUM0 == result)
 		{
 			/* write status and gen irq */
-			can_regs[1].can_status_reg |= CANINTF_TX;
-			generate_irq(APALIS_TK1_K20_CAN1_IRQ);
-			cb->async_status = pdFALSE;
-			xSemaphoreGiveFromISR(cb->sem, &reschedule);
+			registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_OFFSET] |= CANINTF_TX;
+			generate_can_irq(1);
 		}
 		break;
 
@@ -125,12 +124,12 @@ static void flexcan_callback1(CAN_Type *base, flexcan_handle_t *handle, status_t
 static void CAN0_Init()
 {
 	flexcan_config_t flexcanConfig;
-	flexcan_rx_mb_config_t mbConfig;
+	flexcan_rx_fifo_config_t fifoConfig;
+	uint32_t fifoFilter = 0xFFFFFFFF;
 
 	FLEXCAN_GetDefaultConfig(&flexcanConfig);
 
 	flexcanConfig.baudRate = 1000000U; /* set default to 1Mbit/s*/
-	flexcanConfig.maxMbNum = 2; /* Use only 2 mailboxes, 1 RX 1TX */
 
 	/* Init FlexCAN module. */
 	flexcanConfig.clkSrc = kFLEXCAN_ClkSrcPeri;
@@ -141,27 +140,29 @@ static void CAN0_Init()
 
 	/* Set Rx Mask to don't care on all bits. */
 	FLEXCAN_SetRxMbGlobalMask(CAN0, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
-
-	/* Setup Rx Message Buffer. */
-	mbConfig.format = kFLEXCAN_FrameFormatExtend;
-	mbConfig.type = kFLEXCAN_FrameTypeData;
-	mbConfig.id = FLEXCAN_ID_EXT(0x1FFFFFFF);
-	FLEXCAN_SetRxMbConfig(CAN0, RX_MESSAGE_BUFFER_NUM0, &mbConfig, true);
+	FLEXCAN_SetRxFifoGlobalMask(CAN0, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
 
 	/* Setup Tx Message Buffer. */
 	FLEXCAN_SetTxMbConfig(CAN0, TX_MESSAGE_BUFFER_NUM0, true);
+
+	fifoConfig.idFilterNum = 1;
+	fifoConfig.idFilterTable = &fifoFilter;
+	fifoConfig.idFilterType = kFLEXCAN_RxFifoFilterTypeC;
+	fifoConfig.priority = kFLEXCAN_RxFifoPrioHigh;
+	FLEXCAN_SetRxFifoConfig(CAN0, &fifoConfig, true);
+
 	PRINTF("CAN0 init done \r\n");
 }
 
 static void CAN1_Init()
 {
 	flexcan_config_t flexcanConfig;
-	flexcan_rx_mb_config_t mbConfig;
+	flexcan_rx_fifo_config_t fifoConfig;
+	uint32_t fifoFilter = 0xFFFFFFFF;
 
 	FLEXCAN_GetDefaultConfig(&flexcanConfig);
 
 	flexcanConfig.baudRate = 1000000U; /* set default to 1Mbit/s */
-	flexcanConfig.maxMbNum = 2; /* Use only 2 mailboxes, 1 RX 1TX */
 
 	/* Init FlexCAN module. */
 	flexcanConfig.clkSrc = kFLEXCAN_ClkSrcPeri;
@@ -172,135 +173,124 @@ static void CAN1_Init()
 
 	/* Set Rx Mask to don't care on all bits. */
 	FLEXCAN_SetRxMbGlobalMask(CAN1, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
-
-	/* Setup Rx Message Buffer. */
-	mbConfig.format = kFLEXCAN_FrameFormatExtend;
-	mbConfig.type = kFLEXCAN_FrameTypeData;
-	mbConfig.id = FLEXCAN_ID_EXT(0x1FFFFFFF);
-	FLEXCAN_SetRxMbConfig(CAN1, RX_MESSAGE_BUFFER_NUM0, &mbConfig, true);
+	FLEXCAN_SetRxFifoGlobalMask(CAN1, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
 
 	/* Setup Tx Message Buffer. */
 	FLEXCAN_SetTxMbConfig(CAN1, TX_MESSAGE_BUFFER_NUM0, true);
+
+	fifoConfig.idFilterNum = 1;
+	fifoConfig.idFilterTable = &fifoFilter;
+	fifoConfig.idFilterType = kFLEXCAN_RxFifoFilterTypeC;
+	fifoConfig.priority = kFLEXCAN_RxFifoPrioHigh;
+	FLEXCAN_SetRxFifoConfig(CAN1, &fifoConfig, true);
+
 	PRINTF("CAN1 init done \r\n");
+}
+uint8_t available_data[2];
+
+void can_calculate_available_data(uint8_t id) {
+	if ( can_regs[id].rx_buf_bottom <= can_regs[id].rx_buf_top)
+		available_data[id] = can_regs[id].rx_buf_top - can_regs[id].rx_buf_bottom;
+	else
+		available_data[id] = APALIS_TK1_CAN_RX_BUF_SIZE - can_regs[id].rx_buf_bottom;
+
+	available_data[id] = (available_data[id] > APALIS_TK1_MAX_CAN_DMA_XREF) ? APALIS_TK1_MAX_CAN_DMA_XREF:available_data[id];
+	registers[APALIS_TK1_K20_CAN_IN_BUF_CNT + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] = available_data[id];
+	if (can_regs[id].rx_buf_bottom == can_regs[id].rx_buf_top)
+		registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] &= ~CANINTF_RX;
+}
+
+void frame_to_buffer(flexcan_frame_t *frame, uint8_t id) {
+	uint8_t top_frame = can_regs[id].rx_buf_top;
+	if (frame->format ==  kFLEXCAN_FrameFormatExtend) {
+		data_buffer[id][top_frame][0] = frame->id & 0xFF;
+		data_buffer[id][top_frame][1] = (frame->id >> 8 ) & 0xFF;
+		data_buffer[id][top_frame][2] = (frame->id >> 16 ) & 0xFF;
+		data_buffer[id][top_frame][3] = (frame->id >> 24 ) & 0x1F;
+		data_buffer[id][top_frame][3] |= CAN_EFF_FLAG >> 24;
+	} else {
+		data_buffer[id][top_frame][0] = (frame->id >> 18) & 0xFF;
+		data_buffer[id][top_frame][1] = ((frame->id >> 18) >> 8 ) & 0x7F;
+		data_buffer[id][top_frame][2] = 0x00;
+		data_buffer[id][top_frame][3] = 0x00;
+	}
+	data_buffer[id][top_frame][3] |= frame->type ?  (CAN_RTR_FLAG >> 24):0x00;
+	data_buffer[id][top_frame][4] = frame->length;
+
+	switch (frame->length) {
+	case 8:data_buffer[id][top_frame][5 + 7] = frame->dataByte7;
+	case 7:data_buffer[id][top_frame][5 + 6] = frame->dataByte6;
+	case 6:data_buffer[id][top_frame][5 + 5] = frame->dataByte5;
+	case 5:data_buffer[id][top_frame][5 + 4] = frame->dataByte4;
+	case 4:data_buffer[id][top_frame][5 + 3] = frame->dataByte3;
+	case 3:data_buffer[id][top_frame][5 + 2] = frame->dataByte2;
+	case 2:data_buffer[id][top_frame][5 + 1] = frame->dataByte1;
+	case 1:data_buffer[id][top_frame][5] = frame->dataByte0;
+	}
+	can_regs[id].rx_buf_top++;
+	can_regs[id].rx_buf_top %= APALIS_TK1_CAN_RX_BUF_SIZE;
+	can_calculate_available_data(id);
 }
 
 void can0_task(void *pvParameters) {
 	flexcan_frame_t  rxFrame;
-	flexcan_mb_transfer_t rxXfer;
-	flexcan_rx_mb_config_t mbConfig;
+	flexcan_fifo_transfer_t rxXfer;
 	callback_message_t cb_msg;
-	status_t ret;
-
-
 	cb_msg.sem = xSemaphoreCreateBinary();
+	cb_msg.async_status = pdFALSE;
 	flexcanHandle[0].userData = (void *) &cb_msg;
 	CAN0_Init();
-	mbConfig.format = kFLEXCAN_FrameFormatExtend;
-	mbConfig.type = kFLEXCAN_FrameTypeData;
-	mbConfig.id = FLEXCAN_ID_EXT(0x1FFFFFFF);
+	rxXfer.frame = &rxFrame;
 
 	while(1)
 	{
-		rxXfer.frame = &rxFrame;
-		rxXfer.mbIdx = RX_MESSAGE_BUFFER_NUM0;
-
-		FLEXCAN_SetRxMbConfig(CAN0, RX_MESSAGE_BUFFER_NUM0, &mbConfig, true);
-		ret = FLEXCAN_TransferReceiveNonBlocking(CAN0, &flexcanHandle[0], &rxXfer);
-		if (ret == kStatus_Success){
-			if (xSemaphoreTake(cb_msg.sem, portMAX_DELAY) == pdTRUE)
-			{
-				if (cb_msg.async_status == pdTRUE)
-				{
-					if (can_regs[0].recived_frames_cnt < APALIS_TK1_CAN_RX_BUF_SIZE){
-
-						memcpy(&rx_buffer[0][can_regs[0].recived_frames_cnt],
-								rxXfer.frame, sizeof(flexcan_frame_t));
-						can_regs[0].recived_frames_cnt++;
-						can_regs[0].can_status_reg |= CANINTF_RX;
-						generate_irq(APALIS_TK1_K20_CAN0_IRQ);
-					}
-					if (can_regs[0].recived_frames_cnt >= APALIS_TK1_CAN_RX_BUF_SIZE)
-						vTaskSuspend(NULL);
-				}
+		FLEXCAN_TransferReceiveFifoNonBlocking(CAN0, &flexcanHandle[0], &rxXfer);
+		if (xSemaphoreTake(cb_msg.sem, portMAX_DELAY) == pdTRUE) {
+			if (cb_msg.async_status == pdTRUE) {
+				cb_msg.async_status = pdFALSE;
+				frame_to_buffer(&rxFrame, 0);
+				can_regs[0].recived_frames_cnt++;
+				registers[APALIS_TK1_K20_CANREG] |= CANINTF_RX;
+				generate_can_irq(0);
 			}
-		}else {
-			FLEXCAN_TransferAbortReceive(CAN0, &flexcanHandle[0], RX_MESSAGE_BUFFER_NUM0);
-			FLEXCAN_TransferAbortSend(CAN0, &flexcanHandle[0], TX_MESSAGE_BUFFER_NUM0);
+
+			if (can_regs[0].recived_frames_cnt >= APALIS_TK1_CAN_RX_BUF_SIZE)
+				vTaskSuspend(NULL);
 		}
+
 	}
 	vSemaphoreDelete(cb_msg.sem);
-
 }
 
 void can1_task(void *pvParameters) {
 	flexcan_frame_t  rxFrame;
-	flexcan_mb_transfer_t rxXfer;
-	flexcan_rx_mb_config_t mbConfig;
+	flexcan_fifo_transfer_t rxXfer;
 	callback_message_t cb_msg;
-	status_t ret;
 
 	cb_msg.sem = xSemaphoreCreateBinary();
 	flexcanHandle[1].userData = (void *) &cb_msg;
 	CAN1_Init();
+	rxXfer.frame = &rxFrame;
 
 	while(1)
 	{
-		rxXfer.frame = &rxFrame;
-		rxXfer.mbIdx = RX_MESSAGE_BUFFER_NUM0;
-
-		FLEXCAN_SetRxMbConfig(CAN1, RX_MESSAGE_BUFFER_NUM0, &mbConfig, true);
-		ret = FLEXCAN_TransferReceiveNonBlocking(CAN1, &flexcanHandle[1], &rxXfer);
-		if (ret == kStatus_Success){
-		if (xSemaphoreTake(cb_msg.sem, portMAX_DELAY) == pdTRUE)
-		{
-			if (cb_msg.async_status == pdTRUE)
-			{
-				if (can_regs[1].recived_frames_cnt < APALIS_TK1_CAN_RX_BUF_SIZE){
-
-					memcpy(&rx_buffer[1][can_regs[1].recived_frames_cnt],
-							rxXfer.frame, sizeof(flexcan_frame_t));
-					can_regs[1].recived_frames_cnt++;
-					can_regs[1].can_status_reg |= CANINTF_RX;
-					generate_irq(APALIS_TK1_K20_CAN1_IRQ);
-				}
-				if (can_regs[1].recived_frames_cnt >= APALIS_TK1_CAN_RX_BUF_SIZE)
-					vTaskSuspend(NULL);
+		FLEXCAN_TransferReceiveFifoNonBlocking(CAN1, &flexcanHandle[1], &rxXfer);
+		if (xSemaphoreTake(cb_msg.sem, portMAX_DELAY) == pdTRUE) {
+			if (cb_msg.async_status == pdTRUE) {
+				cb_msg.async_status = pdFALSE;
+				frame_to_buffer(&rxFrame, 1);
+				can_regs[1].recived_frames_cnt++;
+				registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_OFFSET] |= CANINTF_RX;
+				generate_can_irq(1);
 			}
-		}
-		}else {
-			FLEXCAN_TransferAbortReceive(CAN1, &flexcanHandle[1], RX_MESSAGE_BUFFER_NUM0);
-			FLEXCAN_TransferAbortSend(CAN1, &flexcanHandle[1], TX_MESSAGE_BUFFER_NUM0);
+
+			if (can_regs[1].recived_frames_cnt >= APALIS_TK1_CAN_RX_BUF_SIZE) {
+				vTaskSuspend(NULL);
+			}
 		}
 	}
 	vSemaphoreDelete(cb_msg.sem);
-}
 
-uint8_t get_canreg (int id)
-{
-	return can_regs[id].can_status_reg;
-}
-
-uint8_t get_canerr (int id)
-{
-	uint8_t temp;
-	temp = can_regs[id].can_err_reg;
-	can_regs[id].can_err_reg = 0;
-	return temp;
-}
-
-uint8_t get_canbadreg (int id)
-{
-	return 0;
-}
-
-uint16_t get_canbittimig (int id)
-{
-	return 0;
-}
-
-uint8_t get_can_rxcnt(int id)
-{
-	return can_regs[id].recived_frames_cnt;
 }
 
 static void can_change_mode(int id, uint8_t new_mode)
@@ -321,9 +311,16 @@ static void can_change_mode(int id, uint8_t new_mode)
 
 uint8_t set_canreg (int id, uint8_t value)
 {
-	can_regs[id].can_status_reg = value;
+	registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] = value;
 	if ( can_regs[id].can_mode != (value & CANCTRL_MODMASK) )
 		can_change_mode(id, (value & CANCTRL_MODMASK));
+	return 1;
+}
+
+uint8_t clr_canreg (int id, uint8_t mask)
+{
+	mask &= (CANINTF_TX | CANINTF_ERR);
+	registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] &= ~mask;
 	return 1;
 }
 
@@ -360,121 +357,34 @@ uint8_t set_canbittimig (int id, uint16_t value, int16_t mask)
 	return 1;
 }
 
-static int can0_inframe;
-
 uint8_t can0_transmit(){
 	flexcan_mb_transfer_t txXfer;
 
 	txXfer.frame = &tx_frame[0];
 	txXfer.mbIdx = TX_MESSAGE_BUFFER_NUM0;
-	can0_inframe = 0;
 
-	FLEXCAN_TransferAbortReceive(CAN0, &flexcanHandle[0], RX_MESSAGE_BUFFER_NUM0);
 	FLEXCAN_TransferSendNonBlocking(CAN0, &flexcanHandle[0], &txXfer);
 	return 0;
 }
-
-uint8_t can0_sendframe_single_rw(uint8_t address, uint8_t data)
-{
-
-	if (address == 0){
-		tx_frame[0].length = data;
-		can0_inframe = 1;
-	}
-
-	if ((address > 0) && (address < 5) && can0_inframe){
-		tx_frame[0].id = data << (8 * (address - 1));
-	}
-
-	if ((address > 4) && can0_inframe){
-		switch (address){
-		case 5: tx_frame[0].dataByte0 = data;
-			break;
-		case 6: tx_frame[0].dataByte1 = data;
-			break;
-		case 7: tx_frame[0].dataByte2 = data;
-			break;
-		case 8: tx_frame[0].dataByte3 = data;
-			break;
-		case 9: tx_frame[0].dataByte4 = data;
-			break;
-		case 10: tx_frame[0].dataByte5 = data;
-			break;
-		case 11: tx_frame[0].dataByte6 = data;
-			break;
-		case 12: tx_frame[0].dataByte7 = data;
-			break;
-		}
-		if ((address - 4) == tx_frame[0].length)
-			return can0_transmit();
-	}
-	return 0;
-}
-
-uint8_t can1_sendframe(uint8_t *data, uint8_t len)
-{
-	return 1;
-}
-
-static int can1_inframe;
 
 uint8_t can1_transmit(){
 	flexcan_mb_transfer_t txXfer;
 
 	txXfer.frame = &tx_frame[1];
 	txXfer.mbIdx = TX_MESSAGE_BUFFER_NUM0;
-	can1_inframe = 0;
 
-	FLEXCAN_TransferAbortReceive(CAN1, &flexcanHandle[1], RX_MESSAGE_BUFFER_NUM0);
 	FLEXCAN_TransferSendNonBlocking(CAN1, &flexcanHandle[1], &txXfer);
-	return 0;
-}
-
-uint8_t can1_sendframe_single_rw(uint8_t address, uint8_t data)
-{
-
-	if (address == 0){
-		tx_frame[1].length = data;
-		can1_inframe = 1;
-	}
-
-	if ((address > 0) && (address < 5) && can1_inframe){
-		tx_frame[1].id = data << (8 * (address - 1));
-	}
-
-	if ((address > 4) && can1_inframe){
-		switch (address){
-		case 5: tx_frame[1].dataByte0 = data;
-			break;
-		case 6: tx_frame[1].dataByte1 = data;
-			break;
-		case 7: tx_frame[1].dataByte2 = data;
-			break;
-		case 8: tx_frame[1].dataByte3 = data;
-			break;
-		case 9: tx_frame[1].dataByte4 = data;
-			break;
-		case 10: tx_frame[1].dataByte5 = data;
-			break;
-		case 11: tx_frame[1].dataByte6 = data;
-			break;
-		case 12: tx_frame[1].dataByte7 = data;
-			break;
-		}
-		if ((address - 4) == tx_frame[1].length)
-			return can1_transmit();
-	}
 	return 0;
 }
 
 uint8_t can_sendframe(uint8_t id, uint8_t *data, uint8_t len)
 {
-	tx_frame[id].length = data[0];
-	tx_frame[id].id = (data[4] << 24) + (data[3] << 16) + (data[2] << 8) + data[1];
+	tx_frame[id].length = data[4];
+	tx_frame[id].id = (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0];
 
-	tx_frame[id].format = (data[4] << 24 & CAN_EFF_FLAG) ?
+	tx_frame[id].format = (data[3] << 24 & CAN_EFF_FLAG) ?
 				kFLEXCAN_FrameFormatExtend:kFLEXCAN_FrameFormatStandard;
-	tx_frame[id].type = (data[4] << 24 & CAN_RTR_FLAG) ?
+	tx_frame[id].type = (data[3] << 24 & CAN_RTR_FLAG) ?
 				kFLEXCAN_FrameTypeRemote:kFLEXCAN_FrameTypeData;
 
 	if (tx_frame[id].format == kFLEXCAN_FrameFormatExtend)
@@ -497,112 +407,34 @@ uint8_t can_sendframe(uint8_t id, uint8_t *data, uint8_t len)
 	return 0;
 }
 
-uint8_t can_readframe(uint8_t id, uint8_t *data)
+uint16_t can_readframe(uint8_t id, dspi_transfer_t *spi_transfer)
 {
-	data[0] = rx_buffer[id][0].length ;
-	if (rx_buffer[id][0].format ==  kFLEXCAN_FrameFormatExtend) {
-		data[1] = rx_buffer[id][0].id & 0xFF;
-		data[2] = (rx_buffer[id][0].id >> 8 ) & 0xFF;
-		data[3] = (rx_buffer[id][0].id >> 16 ) & 0xFF;
-		data[4] = (rx_buffer[id][0].id >> 24 ) & 0x1F;
-		data[4] |= CAN_EFF_FLAG >> 24;
-	} else {
-		data[1] = (rx_buffer[id][0].id >> 18) & 0xFF;
-		data[2] = ((rx_buffer[id][0].id >> 18) >> 8 ) & 0x7F;
-		data[3] = 0x00;
-		data[4] = 0x00;
-	}
-	data[4] |= rx_buffer[id][0].type ?  (CAN_RTR_FLAG >> 24):0x00;
+	uint8_t rx_size;
+	spi_transfer->txData = data_buffer[id][can_regs[id].rx_buf_bottom];
+	rx_size = spi_transfer->rxData[2] / CAN_TRANSFER_BUF_LEN; /* size in frames, not bytes */
+	if (rx_size > available_data[id])
+		rx_size = available_data[id];
+	can_regs[id].rx_buf_bottom = can_regs[id].rx_buf_bottom + rx_size;
+	can_regs[id].rx_buf_bottom %= APALIS_TK1_CAN_RX_BUF_SIZE;
 
-	data[5] = rx_buffer[id][0].dataByte0;
-	data[5 + 1] = rx_buffer[id][0].dataByte1;
-	data[5 + 2] = rx_buffer[id][0].dataByte2;
-	data[5 + 3] = rx_buffer[id][0].dataByte3;
-	data[5 + 4] = rx_buffer[id][0].dataByte4;
-	data[5 + 5] = rx_buffer[id][0].dataByte5;
-	data[5 + 6] = rx_buffer[id][0].dataByte6;
-	data[5 + 7] = rx_buffer[id][0].dataByte7;
+	resume_can = id + 1;
 
-	can_regs[id].recived_frames_cnt = 0;
-	can_regs[id].can_status_reg &= ~CANINTF_RX;
-	if (id == 1)
-		vTaskResume(can1_task_handle);
-	else
-		vTaskResume(can0_task_handle);
+	can_regs[id].recived_frames_cnt -= rx_size;
+	can_calculate_available_data(id);
 
-	return CAN_TRANSFER_BUF_LEN;
-}
-
-uint8_t can_readframe_single_rw(int id, uint8_t address)
-{
-
-	if (address == 0){
-		return rx_buffer[id][0].length;
-	}
-
-	if ((address > 0) && (address < 5) && can1_inframe){
-		return  rx_buffer[id][0].id >> (8 * (address - 1));
-	}
-
-	if ((address > 4) && can1_inframe){
-		switch (address){
-		case 5: return rx_buffer[id][0].dataByte0;
-		case 6: return rx_buffer[id][0].dataByte1;
-		case 7: return rx_buffer[id][0].dataByte2;
-		case 8: return rx_buffer[id][0].dataByte3;
-		case 9: return rx_buffer[id][0].dataByte4;
-		case 10: return rx_buffer[id][0].dataByte5;
-		case 11: return rx_buffer[id][0].dataByte6;
-		case 12:
-			vTaskResume(id ? can1_task:can0_task);
-			can_regs[id].recived_frames_cnt = 0;
-			return rx_buffer[id][0].dataByte7;
-		}
-		if ((address - 4) == tx_frame[1].length)
-			return can1_transmit();
-	}
-	return 0;
+	return rx_size * CAN_TRANSFER_BUF_LEN;
 }
 
 int canx_registers(dspi_transfer_t *spi_transfer, int id)
 {
 	uint8_t *rx_buf = spi_transfer->rxData;
-	uint8_t *tx_buf = &spi_transfer->txData[1];
-
-	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
-		rx_buf[2] -= APALIS_TK1_K20_CAN_DEV_OFFSET(id);
-		switch (rx_buf[2]) {
-		case APALIS_TK1_K20_CANREG:
-			tx_buf[0] = get_canreg(id);
-			break;
-		case APALIS_TK1_K20_CANERR:
-			tx_buf[0] = get_canerr(id);
-			break;
-		case APALIS_TK1_K20_CAN_BAUD_REG:
-			tx_buf[0] = get_canbadreg(id);
-			break;
-		case APALIS_TK1_K20_CAN_BIT_1:
-			tx_buf[0] = get_canbittimig(id) && 0xFF;
-			break;
-		case APALIS_TK1_K20_CAN_BIT_2:
-			tx_buf[0] = (get_canbittimig(id) >> 8) && 0xFF;
-			break;
-		case APALIS_TK1_K20_CAN_IN_BUF_CNT:
-			tx_buf[0] = get_can_rxcnt(id);
-			break;
-		default:
-			if((rx_buf[1] >=APALIS_TK1_K20_CAN_IN_BUF) &&
-					(rx_buf[1] <= APALIS_TK1_K20_CAN_IN_BUF_END)) {
-				tx_buf[0] = can_readframe_single_rw(id, rx_buf[2]);
-			} else
-				return -EIO;
-		}
-		return 1;
-	} else if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
+	if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
 		rx_buf[1] -= APALIS_TK1_K20_CAN_DEV_OFFSET(id);
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_CANREG:
 			return set_canreg(id, rx_buf[2]);
+		case APALIS_TK1_K20_CANREG_CLR:
+			return clr_canreg(id, rx_buf[2]);
 		case APALIS_TK1_K20_CANERR:
 			return set_canerr(id, rx_buf[2]);
 		case APALIS_TK1_K20_CAN_BAUD_REG:
@@ -612,29 +444,23 @@ int canx_registers(dspi_transfer_t *spi_transfer, int id)
 		case APALIS_TK1_K20_CAN_BIT_2:
 			return set_canbittimig(id, (rx_buf[2] << 8), 0xFF00);
 		default:
-			if((rx_buf[1] >=APALIS_TK1_K20_CAN_OUT_BUF) &&
-					(rx_buf[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END) &&
-					(id == 0)) {
-				return can0_sendframe_single_rw(rx_buf[1] - APALIS_TK1_K20_CAN_OUT_BUF, rx_buf[2]);
-			} else
-				return -EIO;
+			return -EIO;
 		}
 
 	} else if (rx_buf[0] == APALIS_TK1_K20_BULK_READ_INST) {
-		rx_buf[2] -= APALIS_TK1_K20_CAN_DEV_OFFSET(id);
-		switch (rx_buf[2]) {
+		rx_buf[1] -= APALIS_TK1_K20_CAN_DEV_OFFSET(id);
+		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_CAN_IN_BUF:
-			return can_readframe(id, tx_buf);
+			return can_readframe(id, spi_transfer);
 		default:
 			return -EIO;
 		}
 	} else if (rx_buf[0] == APALIS_TK1_K20_BULK_WRITE_INST) {
-		rx_buf[2] -= APALIS_TK1_K20_CAN_DEV_OFFSET(id);
-		switch (rx_buf[2]) {
+		rx_buf[1] -= APALIS_TK1_K20_CAN_DEV_OFFSET(id);
+		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_CAN_OUT_BUF:
-			can_sendframe(id, &rx_buf[3], rx_buf[1]);
+			can_sendframe(id, &rx_buf[3], rx_buf[2]);
 			break;
-		case APALIS_TK1_K20_CAN_BIT_1:
 		default:
 			return -EIO;
 		}

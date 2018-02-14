@@ -95,10 +95,10 @@ uint8_t get_gpio_status(uint8_t pin)
 int gpio_registers(dspi_transfer_t *spi_transfer)
 {
 	uint8_t *rx_buf = spi_transfer->rxData;
-	uint8_t *tx_buf = &spi_transfer->txData[1];
+	uint8_t *tx_buf = &spi_transfer->txData[0];
 
 	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
-		switch (rx_buf[2]) {
+	/*	switch (rx_buf[1]) {
 		case APALIS_TK1_K20_GPIOREG:
 			return -ENOENT;
 			break;
@@ -121,7 +121,7 @@ int gpio_registers(dspi_transfer_t *spi_transfer)
 			break;
 		default:
 			return -ENOENT;
-		}
+		} */
 	} else if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_GPIOREG:

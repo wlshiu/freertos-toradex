@@ -1248,9 +1248,9 @@ status_t DSPI_SlaveTransferNonBlocking(SPI_Type *base, dspi_slave_handle_t *hand
 
     handle->errorCount = 0;
 
-    uint8_t whichCtar = (transfer->configFlags & DSPI_SLAVE_CTAR_MASK) >> DSPI_SLAVE_CTAR_SHIFT;
-    handle->bitsPerFrame =
-        (((base->CTAR_SLAVE[whichCtar]) & SPI_CTAR_SLAVE_FMSZ_MASK) >> SPI_CTAR_SLAVE_FMSZ_SHIFT) + 1;
+    //uint8_t whichCtar = (transfer->configFlags & DSPI_SLAVE_CTAR_MASK) >> DSPI_SLAVE_CTAR_SHIFT;
+    handle->bitsPerFrame = 8;
+        //(((base->CTAR_SLAVE[whichCtar]) & SPI_CTAR_SLAVE_FMSZ_MASK) >> SPI_CTAR_SLAVE_FMSZ_SHIFT) + 1;
 
     DSPI_StopTransfer(base);
 
@@ -1316,9 +1316,11 @@ static void DSPI_SlaveTransferFillUpTxFifo(SPI_Type *base, dspi_slave_handle_t *
         /* Transmit data */
         if (handle->remainingSendByteCount > 0)
         {
+#if 0
             /* Have data to transmit, update the transmit data and push to FIFO */
             if (handle->bitsPerFrame <= 8)
             {
+#endif
                 /* bits/frame is 1 byte */
                 if (handle->txData)
                 {
@@ -1333,6 +1335,7 @@ static void DSPI_SlaveTransferFillUpTxFifo(SPI_Type *base, dspi_slave_handle_t *
 
                 /* Decrease remaining dataSize */
                 --handle->remainingSendByteCount;
+#if 0
             }
             /* bits/frame is 2 bytes */
             else
@@ -1375,6 +1378,7 @@ static void DSPI_SlaveTransferFillUpTxFifo(SPI_Type *base, dspi_slave_handle_t *
                     transmitData = (uint16_t)((uint16_t)(dummyPattern) << 8) | dummyPattern;
                 }
             }
+#endif
         }
         else
         {
@@ -1440,8 +1444,7 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
 {
     assert(handle);
 
-    uint8_t dummyPattern = DSPI_DUMMY_DATA;
-    uint32_t dataReceived;
+    volatile uint32_t dataReceived;
     uint32_t dataSend = 0;
 
     /* Because SPI protocol is synchronous, the number of bytes that that slave received from the
@@ -1462,12 +1465,15 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
             DSPI_ClearStatusFlags(base, kDSPI_RxFifoDrainRequestFlag);
 
             /* If bits/frame is one byte */
+#if 0
             if (handle->bitsPerFrame <= 8)
             {
+#endif
                 if (handle->rxData)
                 {
-                    if ((handle->totalByteCount - handle->remainingReceiveByteCount) == 1){
-                    	if ( *(handle->rxData - 1) ==  APALIS_TK1_K20_BULK_WRITE_INST) {
+                    if ((handle->totalByteCount - handle->remainingReceiveByteCount) == 2){
+
+                    	if ( *(handle->rxData - 2) ==  APALIS_TK1_K20_BULK_WRITE_INST) {
                     		handle->remainingReceiveByteCount += dataReceived;
                     		handle->totalByteCount += dataReceived;
                     		handle->remainingSendByteCount += dataReceived;
@@ -1478,25 +1484,35 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
                     ++handle->rxData;
                 }
 
-                /* Descrease remaining receive byte count */
+                /* Decrease remaining receive byte count */
                 --handle->remainingReceiveByteCount;
-
+        	if (handle->remainingSendByteCount == 0){
+                        		if ( *(handle->rxData - 2) ==  APALIS_TK1_K20_READ_INST)
+                        		{
+                                    		base->PUSHR_SLAVE = registers[dataReceived];
+                        		}
+                        		else
+                        		{
+                        			base->PUSHR_SLAVE = 0x55;
+                        		}
+                        	}
                 if (handle->remainingSendByteCount > 0)
                 {
-                    if (handle->txData)
-                    {
-                        dataSend = *handle->txData;
-                        ++handle->txData;
-                    }
-                    else
-                    {
-                        dataSend = dummyPattern;
-                    }
+                		if (handle->txData)
+                		{
+                			dataSend = *handle->txData;
+                			++handle->txData;
+                		}
+                		else
+                		{
+                			dataSend = dataReceived;
+                		}
 
                     --handle->remainingSendByteCount;
                     /* Write the data to the DSPI data register */
                     base->PUSHR_SLAVE = dataSend;
                 }
+#if 0
             }
             else /* If bits/frame is 2 bytes */
             {
@@ -1572,6 +1588,7 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
                     base->PUSHR_SLAVE = dataSend;
                 }
             }
+#endif
             /* Try to clear TFFF by writing a one to it; it will not clear if TX FIFO not full */
             DSPI_ClearStatusFlags(base, kDSPI_TxFifoFillRequestFlag);
 
@@ -1585,6 +1602,7 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
     if ((handle->remainingReceiveByteCount == 0) || (handle->state == kDSPI_Error))
     {
         /* Other cases, stop the transfer. */
+	dataReceived = base->POPR;
         DSPI_SlaveTransferComplete(base, handle);
         return;
     }
