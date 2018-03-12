@@ -1486,10 +1486,23 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
 
                 /* Decrease remaining receive byte count */
                 --handle->remainingReceiveByteCount;
-        	if (handle->remainingSendByteCount == 0){
+                if (handle->remainingSendByteCount == 0 && handle->rxData){
                         		if ( *(handle->rxData - 2) ==  APALIS_TK1_K20_READ_INST)
                         		{
                                     		base->PUSHR_SLAVE = registers[dataReceived];
+                                    		switch (dataReceived)
+                                    		{
+                                    		case APALIS_TK1_K20_IRQREG:
+                                    			registers[APALIS_TK1_K20_IRQREG] = 0;
+                                    			break;
+                                    		case APALIS_TK1_K20_CANREG:
+                                    			registers[APALIS_TK1_K20_CANREG] &= ~0x10;
+                                    			break;
+                                    		case APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_OFFSET:
+                                    			registers[APALIS_TK1_K20_CANREG
+								  + APALIS_TK1_K20_CAN_OFFSET] &= ~0x10;
+                                    			break;
+                                    		}
                         		}
                         		else
                         		{
@@ -1505,7 +1518,7 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
                 		}
                 		else
                 		{
-                			dataSend = dataReceived;
+                			dataSend = 0x44;
                 		}
 
                     --handle->remainingSendByteCount;

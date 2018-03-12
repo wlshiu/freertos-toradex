@@ -4,7 +4,8 @@
 #include "gpio_ext.h"
 #include "adc_task.h"
 
-uint8_t  registers[APALIS_TK1_K20_LAST_REG];
+volatile uint8_t registers[APALIS_TK1_K20_LAST_REG];
+volatile uint8_t regRxHandled;
 
 /* Put FW version at known address in binary. Make it 32-bit to have room for the future*/
 const uint32_t __attribute__((section(".FwVersion"), used)) fw_version = APALIS_TK1_K20_FW_VER;
@@ -180,92 +181,82 @@ void spi_task(void *pvParameters) {
 	g_dspi_edma_s_handle.userData = &cb_msg;
 	DSPI_SlaveTransferCreateHandleEDMA(SPI2, &g_dspi_edma_s_handle, SPI_callback, &cb_msg, &dspiEdmaSlaveRxHandle, &dspiEdmaSlaveTxHandle);
 #endif
+	memset(registers, 0x00, APALIS_TK1_K20_LAST_REG);
 	registers[APALIS_TK1_K20_REVREG] = APALIS_TK1_K20_FW_VER;
 	GPIO_SetPinsOutput(GPIOA, 1u << 29u); /* INT2 idle */
 	slaveXfer.configFlags = kDSPI_SlaveCtar0;
 
-while(1){
-	slaveXfer.txData = NULL;/* no MISO traffic*/
-	slaveXfer.rxData = slaveRxData;
-	slaveXfer.dataSize = 3;
-	/* Wait for instructions from SoC */
-	ret = DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
-	if ( ret == kStatus_Success) {
-
-		xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
-		slaveXfer.txData = slaveTxData;
+	while(1){
+		slaveXfer.txData = NULL;/* no MISO traffic*/
 		slaveXfer.rxData = slaveRxData;
+		slaveXfer.dataSize = 3;
+		/* Wait for instructions from SoC */
+		ret = DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
+		if ( ret == kStatus_Success) {
 
-		if (slaveRxData[0] == APALIS_TK1_K20_READ_INST)
-		{
-			/* clear interrupt flags on read; */
-			if ( slaveRxData[1] == APALIS_TK1_K20_IRQREG)
-			{
-				registers[APALIS_TK1_K20_IRQREG] = 0;
-			}
-		}
-		else
-		{
-			if (slaveRxData[1] <= 0x05) {
-				ret = general_registers(&slaveXfer);
-			} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0))
-					&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(0))) {
-				ret = canx_registers(&slaveXfer, 0);
+			xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
 
-			} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1))
-					&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(1))) {
-				ret = canx_registers(&slaveXfer, 1);
+			slaveXfer.txData = slaveTxData;
+			slaveXfer.rxData = slaveRxData;
+			if (slaveRxData[0] != APALIS_TK1_K20_READ_INST) {
+				if (slaveRxData[1] <= 0x05) {
+					ret = general_registers(&slaveXfer);
+				} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0))
+						&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(0))) {
+					ret = canx_registers(&slaveXfer, 0);
+
+				} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1))
+						&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(1))) {
+					ret = canx_registers(&slaveXfer, 1);
 #ifdef BOARD_USES_ADC
-			} else if ((slaveRxData[1] >= APALIS_TK1_K20_ADCREG) && (slaveRxData[1] <= APALIS_TK1_K20_ADC_CH3H)) {
-				ret = adc_registers(&slaveXfer);
+				} else if ((slaveRxData[1] >= APALIS_TK1_K20_ADCREG) && (slaveRxData[1] <= APALIS_TK1_K20_ADC_CH3H)) {
+					ret = adc_registers(&slaveXfer);
 
-			} else if ((slaveRxData[1] >= APALIS_TK1_K20_TSCREG) && (slaveRxData[1] <= APALIS_TK1_K20_TSC_YPH)) {
-				ret = tsc_registers(&slaveXfer);
+				} else if ((slaveRxData[1] >= APALIS_TK1_K20_TSCREG) && (slaveRxData[1] <= APALIS_TK1_K20_TSC_YPH)) {
+					ret = tsc_registers(&slaveXfer);
 #endif
-			} else if ((slaveRxData[1] >= APALIS_TK1_K20_GPIOREG) && (slaveRxData[1] <= APALIS_TK1_K20_GPIO_STA)) {
-				ret = gpio_registers(&slaveXfer);
-			} else {
-				/* Register not defined */
-				ret = -EINVAL;
-			}
+				} else if ((slaveRxData[1] >= APALIS_TK1_K20_GPIOREG) && (slaveRxData[1] <= APALIS_TK1_K20_GPIO_STA)) {
+					ret = gpio_registers(&slaveXfer);
+				} else {
+					/* Register not defined */
+					ret = -EINVAL;
+				}
 
 
-			if (ret <= 0) {
-				slaveTxData[0] = TK1_K20_INVAL;
-				slaveTxData[1] = ret;
-				slaveTxData[2] = slaveRxData[0];
-				slaveTxData[3] = slaveRxData[1];
-				slaveTxData[4] = slaveRxData[2];
-				slaveXfer.txData = slaveTxData;
-				ret = 5;
-			}
+				if (ret <= 0) {
+					slaveTxData[0] = TK1_K20_INVAL;
+					slaveTxData[1] = ret;
+					slaveTxData[2] = slaveRxData[0];
+					slaveTxData[3] = slaveRxData[1];
+					slaveTxData[4] = slaveRxData[2];
+					slaveXfer.txData = slaveTxData;
+					ret = 5;
+				}
 
-			if (slaveRxData[0] == APALIS_TK1_K20_BULK_READ_INST)
-			{
-				slaveXfer.dataSize = ret;
-				//retry_size = slaveXfer.dataSize;
-				slaveXfer.rxData = slaveRxData; /* We're not expecting any MOSI traffic, but NULL messes up stuff */
+				if (slaveRxData[0] == APALIS_TK1_K20_BULK_READ_INST)
+				{
+					slaveXfer.dataSize = ret;
+					slaveXfer.rxData = NULL; /* We're not expecting any MOSI traffic, but NULL messes up stuff */
 #ifdef SPI_DMA
-				__disable_irq(); // just to make sure that high can irq rate will not interfere
-				DSPI_SlaveTransferEDMA(SPI2, &g_dspi_edma_s_handle, &slaveXfer);
-				__enable_irq();
+					DSPI_SlaveTransferEDMA(SPI2, &g_dspi_edma_s_handle, &slaveXfer);
 #else
-				DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
+					DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
 #endif
-				xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
-				if (resume_can != 0) {
-					if (resume_can == 1) {
-						vTaskResume(can0_task_handle);
-						can_calculate_available_data(0);
+					xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
+					if (resume_can != 0) {
+						if (resume_can == 1) {
+							vTaskResume(can0_task_handle);
+							can_calculate_available_data(0);
+						}
+						else {
+							vTaskResume(can1_task_handle);
+							can_calculate_available_data(1);
+						}
+						resume_can = 0;
 					}
-					else {
-						vTaskResume(can1_task_handle);
-						can_calculate_available_data(1);
-					}
-					resume_can = 0;
 				}
 			}
+
 		}
 	}
-}
 }

@@ -165,7 +165,7 @@ struct register_struct {
 	uint16_t tsc_yp;
 } gen_regs;
 
-extern uint8_t  registers[APALIS_TK1_K20_LAST_REG];
+extern volatile uint8_t  registers[APALIS_TK1_K20_LAST_REG];
 extern uint8_t resume_can;
 
 #endif /* COM_TASK_H_ */

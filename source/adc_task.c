@@ -111,8 +111,10 @@ void adc_task(void *pvParameters)
 		for (i = 0; i < ADC0_CHANNEL_CNT;i ++){
 			channel.channelNumber = adc0_channels[i];
 			gen_regs.adc[i] = do_adc_conversion(ADC0, &channel);
+			registers[APALIS_TK1_K20_ADC_CH0L + 2 * i] = gen_regs.adc[i] & 0xFF;
+			registers[APALIS_TK1_K20_ADC_CH0L + 2 * i + 1] = (gen_regs.adc[i] >> 8) & 0xFF;
 		}
-		vTaskDelay(1);
+		vTaskDelay(5);
 	}
 
 }

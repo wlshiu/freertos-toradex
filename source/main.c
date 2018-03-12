@@ -56,29 +56,6 @@
 #define CONTROLLER_ID kUSB_ControllerEhci0
 #endif
 
-/* Task priorities. */
-#define debug_task_PRIORITY 1
-#define USB_HOST_INTERRUPT_PRIORITY (5U)
-
-/* Task handles */
-
-TaskHandle_t usb_task_handle;
-#ifdef SDK_DEBUGCONSOLE
-TaskHandle_t debug_task_handle;
-#endif
-
-
-/*!
- * @brief Debug task
- */
-#ifdef SDK_DEBUGCONSOLE
-static void debug_task(void *pvParameters) {
-	for (;;) {
-        vTaskDelay(10000);
-        PRINTF("Alive\r\n");
-	}
-}
-#endif
 /*!
  * @brief Application entry point.
  */
@@ -107,6 +84,11 @@ int main(void) {
 		PRINTF("create CAN1 task error\r\n");
 	}
 
+	if(xTaskCreate(can_tx_notify_task, "CAN_tx_notify_task", 64L / sizeof(portSTACK_TYPE), NULL, 3, &can_tx_notify_task_handle) != pdPASS)
+	{
+		PRINTF("create CAN TX notify task error\r\n");
+	}
+
 #ifdef BOARD_USES_ADC
 	if(xTaskCreate(adc_task, "ADC_task", 1000L / sizeof(portSTACK_TYPE), NULL, 2, &adc_task_handle) != pdPASS)
 	{
@@ -119,18 +101,10 @@ int main(void) {
 	}
 #endif
 
-#ifdef SDK_DEBUGCONSOLE
-	if(xTaskCreate(debug_task, "Debug_task", configMINIMAL_STACK_SIZE, NULL, debug_task_PRIORITY, &debug_task_handle) != pdPASS)
-	{
-		PRINTF("create hello task error\r\n");
-	}
-#endif
-
-	NVIC_SetPriority(CAN0_ORed_Message_buffer_IRQn, 5u);
-	NVIC_SetPriority(CAN1_ORed_Message_buffer_IRQn, 5u);
+	NVIC_SetPriority(CAN0_ORed_Message_buffer_IRQn, 6u);
+	NVIC_SetPriority(CAN1_ORed_Message_buffer_IRQn, 6u);
 	NVIC_SetPriority(SPI2_IRQn, 5u);
 	NVIC_SetPriority(DMA0_IRQn, 5u);
-	NVIC_SetPriorityGrouping( 0 );
 	vTaskStartScheduler();
 
 	for(;;) { /* Infinite loop to avoid leaving the main function */

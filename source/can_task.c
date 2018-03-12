@@ -60,11 +60,29 @@ static uint8_t data_buffer[2][APALIS_TK1_CAN_RX_BUF_SIZE][CAN_TRANSFER_BUF_LEN];
 static struct can_registers can_regs[2];
 uint8_t resume_can;
 
-void generate_can_irq(uint8_t id) {
+void generate_can_irq(uint8_t id)
+{
 	if (id == 0)
 		GPIO_TogglePinsOutput(GPIOB, 1u << 8u);
 	else
 		GPIO_TogglePinsOutput(GPIOE, 1u << 26u);
+}
+
+void can_tx_notify_task(void *pvParameters)
+{
+	uint32_t ulInterruptStatus;
+
+	while(1){
+		xTaskNotifyWait( 0x00, 0xFFFFFFFF, &ulInterruptStatus, portMAX_DELAY);
+		if (ulInterruptStatus & 0x01) {
+			registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0)] |= CANINTF_TX;
+			generate_can_irq(0);
+		}
+		if (ulInterruptStatus & 0x02) {
+			registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1)] |= CANINTF_TX;
+			generate_can_irq(1);
+		}
+	}
 }
 
 static void flexcan_callback0(CAN_Type *base, flexcan_handle_t *handle, status_t status, uint32_t result, void *userData)
@@ -82,9 +100,7 @@ static void flexcan_callback0(CAN_Type *base, flexcan_handle_t *handle, status_t
 	case kStatus_FLEXCAN_TxIdle:
 		if (TX_MESSAGE_BUFFER_NUM0 == result)
 		{
-			/* write status and gen irq */
-			registers[APALIS_TK1_K20_CANREG] |= CANINTF_TX;
-			generate_can_irq(0);
+			xTaskNotifyFromISR(can_tx_notify_task_handle, 0x01, eSetBits, &reschedule);
 		}
 		break;
 
@@ -109,9 +125,7 @@ static void flexcan_callback1(CAN_Type *base, flexcan_handle_t *handle, status_t
 	case kStatus_FLEXCAN_TxIdle:
 		if (TX_MESSAGE_BUFFER_NUM0 == result)
 		{
-			/* write status and gen irq */
-			registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_OFFSET] |= CANINTF_TX;
-			generate_can_irq(1);
+			xTaskNotifyFromISR(can_tx_notify_task_handle, 0x02, eSetBits, &reschedule);
 		}
 		break;
 
@@ -142,14 +156,18 @@ static void CAN0_Init()
 	FLEXCAN_SetRxMbGlobalMask(CAN0, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
 	FLEXCAN_SetRxFifoGlobalMask(CAN0, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
 
-	/* Setup Tx Message Buffer. */
-	FLEXCAN_SetTxMbConfig(CAN0, TX_MESSAGE_BUFFER_NUM0, true);
-
-	fifoConfig.idFilterNum = 1;
+	fifoConfig.idFilterNum = 0;
 	fifoConfig.idFilterTable = &fifoFilter;
 	fifoConfig.idFilterType = kFLEXCAN_RxFifoFilterTypeC;
 	fifoConfig.priority = kFLEXCAN_RxFifoPrioHigh;
 	FLEXCAN_SetRxFifoConfig(CAN0, &fifoConfig, true);
+
+	/* errata #5641 */
+	FLEXCAN_SetTxMbConfig(CAN0, TX_MESSAGE_BUFFER_NUM0 - 1, true);
+
+	/* Setup Tx Message Buffer. */
+	FLEXCAN_SetTxMbConfig(CAN0, TX_MESSAGE_BUFFER_NUM0, true);
+	memset(&can_regs[0], 0x00u,sizeof(struct can_registers));
 
 	PRINTF("CAN0 init done \r\n");
 }
@@ -175,14 +193,18 @@ static void CAN1_Init()
 	FLEXCAN_SetRxMbGlobalMask(CAN1, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
 	FLEXCAN_SetRxFifoGlobalMask(CAN1, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
 
-	/* Setup Tx Message Buffer. */
-	FLEXCAN_SetTxMbConfig(CAN1, TX_MESSAGE_BUFFER_NUM0, true);
-
-	fifoConfig.idFilterNum = 1;
+	fifoConfig.idFilterNum = 0;
 	fifoConfig.idFilterTable = &fifoFilter;
 	fifoConfig.idFilterType = kFLEXCAN_RxFifoFilterTypeC;
 	fifoConfig.priority = kFLEXCAN_RxFifoPrioHigh;
 	FLEXCAN_SetRxFifoConfig(CAN1, &fifoConfig, true);
+
+	/* errata #5641 */
+	FLEXCAN_SetTxMbConfig(CAN1, TX_MESSAGE_BUFFER_NUM0 - 1, true);
+
+	/* Setup Tx Message Buffer. */
+	FLEXCAN_SetTxMbConfig(CAN1, TX_MESSAGE_BUFFER_NUM0, true);
+	memset(&can_regs[0], 0x00u,sizeof(struct can_registers));
 
 	PRINTF("CAN1 init done \r\n");
 }
@@ -244,7 +266,9 @@ void can0_task(void *pvParameters) {
 
 	while(1)
 	{
+		taskENTER_CRITICAL();
 		FLEXCAN_TransferReceiveFifoNonBlocking(CAN0, &flexcanHandle[0], &rxXfer);
+		taskEXIT_CRITICAL();
 		if (xSemaphoreTake(cb_msg.sem, portMAX_DELAY) == pdTRUE) {
 			if (cb_msg.async_status == pdTRUE) {
 				cb_msg.async_status = pdFALSE;
@@ -274,7 +298,9 @@ void can1_task(void *pvParameters) {
 
 	while(1)
 	{
+		taskENTER_CRITICAL();
 		FLEXCAN_TransferReceiveFifoNonBlocking(CAN1, &flexcanHandle[1], &rxXfer);
+		taskEXIT_CRITICAL();
 		if (xSemaphoreTake(cb_msg.sem, portMAX_DELAY) == pdTRUE) {
 			if (cb_msg.async_status == pdTRUE) {
 				cb_msg.async_status = pdFALSE;
@@ -363,7 +389,9 @@ uint8_t can0_transmit(){
 	txXfer.frame = &tx_frame[0];
 	txXfer.mbIdx = TX_MESSAGE_BUFFER_NUM0;
 
+	taskENTER_CRITICAL();
 	FLEXCAN_TransferSendNonBlocking(CAN0, &flexcanHandle[0], &txXfer);
+	taskEXIT_CRITICAL();
 	return 0;
 }
 
@@ -373,7 +401,9 @@ uint8_t can1_transmit(){
 	txXfer.frame = &tx_frame[1];
 	txXfer.mbIdx = TX_MESSAGE_BUFFER_NUM0;
 
+	taskENTER_CRITICAL();
 	FLEXCAN_TransferSendNonBlocking(CAN1, &flexcanHandle[1], &txXfer);
+	taskEXIT_CRITICAL();
 	return 0;
 }
 

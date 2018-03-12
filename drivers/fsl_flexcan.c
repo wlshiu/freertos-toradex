@@ -1281,6 +1281,7 @@ void FLEXCAN_TransferHandleIRQ(CAN_Type *base, flexcan_handle_t *handle)
                 /* Get current State of Message Buffer. */
                 switch (handle->mbState[result])
                 {
+#if 0
                     /* Solve Rx Data Frame. */
                     case kFLEXCAN_StateRxData:
                         status = FLEXCAN_ReadRxMb(base, result, handle->mbFrameBuf[result]);
@@ -1300,17 +1301,13 @@ void FLEXCAN_TransferHandleIRQ(CAN_Type *base, flexcan_handle_t *handle)
                         }
                         FLEXCAN_TransferAbortReceive(base, handle, result);
                         break;
-
+#endif
+                    /* Solve Tx Remote Frame. */
+                    case kFLEXCAN_StateTxRemote: /* fall through */
                     /* Solve Tx Data Frame. */
                     case kFLEXCAN_StateTxData:
                         status = kStatus_FLEXCAN_TxIdle;
                         FLEXCAN_TransferAbortSend(base, handle, result);
-                        break;
-
-                    /* Solve Tx Remote Frame. */
-                    case kFLEXCAN_StateTxRemote:
-                        handle->mbState[result] = kFLEXCAN_StateRxRemote;
-                        status = kStatus_FLEXCAN_TxSwitchToRx;
                         break;
 
                     default:
