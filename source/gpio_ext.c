@@ -29,7 +29,7 @@ static inline int port_type_to_int(PORT_Type *port)
 /* returns GPIO index in gpio_list table and -EINVAL
  * if there is no entry for this gpio.
  */
-int is_gpio_valid(uint8_t pin)
+static int is_gpio_valid(uint8_t pin)
 {
 	uint16_t i;
 	int temp;
@@ -49,15 +49,12 @@ int is_gpio_valid(uint8_t pin)
 	return -EINVAL;
 }
 
-int set_gpio_status(uint8_t status, uint8_t pin)
+static int set_gpio_status(uint8_t status, int index)
 {
 	gpio_pin_config_t gpio_config;
-	int index;
 
 	gpio_config.pinDirection = (status & APALIS_TK1_K20_GPIO_STA_OE) ? kGPIO_DigitalOutput : kGPIO_DigitalInput;
 	gpio_config.outputLogic = (status & APALIS_TK1_K20_GPIO_STA_VAL);
-
-	index = is_gpio_valid(pin);
 
 	if (index >= 0)
 		GPIO_PinInit(gpio_list[index].gpio, gpio_list[index].pin, &gpio_config);
@@ -68,14 +65,12 @@ int set_gpio_status(uint8_t status, uint8_t pin)
 }
 
 
-uint8_t get_gpio_status(uint8_t pin)
+static uint8_t get_gpio_status(int index)
 {
 	uint8_t status;
-	int index;
 	GPIO_Type *base;
 	uint32_t gpio_pin;
 
-	index = is_gpio_valid(pin);
 	if (index == -EINVAL)
 		return 0xFF;
 	base = gpio_list[index].gpio;
@@ -95,49 +90,33 @@ uint8_t get_gpio_status(uint8_t pin)
 int gpio_registers(dspi_transfer_t *spi_transfer)
 {
 	uint8_t *rx_buf = spi_transfer->rxData;
-	uint8_t *tx_buf = &spi_transfer->txData[0];
+	int index;
 
-	if (rx_buf[0] == APALIS_TK1_K20_READ_INST) {
-	/*	switch (rx_buf[1]) {
-		case APALIS_TK1_K20_GPIOREG:
-			return -ENOENT;
-			break;
-		case APALIS_TK1_K20_GPIO_NO:
-			if (gen_regs.gpio_no != 0xFF){
-				tx_buf[0] = gen_regs.gpio_no;
-				return 1;
-			} else
-				return -ENOENT;
-			break;
-		case APALIS_TK1_K20_GPIO_STA:
-			if (gen_regs.gpio_no != 0xFF){
-				tx_buf[0] = get_gpio_status(gen_regs.gpio_no);
-				if (tx_buf[0] != 0xFF)
-					return 1;
-				else
-					return -ENOENT;
-			} else
-				return -ENOENT;
-			break;
-		default:
-			return -ENOENT;
-		} */
-	} else if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
+	if (rx_buf[0] == APALIS_TK1_K20_WRITE_INST) {
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_GPIOREG:
 			return -ENOENT;
 			break;
 		case APALIS_TK1_K20_GPIO_NO:
-			if (is_gpio_valid(rx_buf[2]) >= 0){
-				gen_regs.gpio_no = rx_buf[2];
+			index = is_gpio_valid(rx_buf[2]);
+			if (index >= 0){
+				registers[APALIS_TK1_K20_GPIO_NO]= rx_buf[2];
+				registers[APALIS_TK1_K20_GPIO_STA] = get_gpio_status(index);
 				return 1;
 			} else {
-				gen_regs.gpio_no = 0xFF;
+				registers[APALIS_TK1_K20_GPIO_NO] = 0xFF;
 				return -ENOENT;
 			}
 			break;
 		case APALIS_TK1_K20_GPIO_STA:
-			return set_gpio_status(rx_buf[2], gen_regs.gpio_no);
+			index = is_gpio_valid(registers[APALIS_TK1_K20_GPIO_NO]);
+			if (index >= 0){
+			set_gpio_status(rx_buf[2], index);
+			registers[APALIS_TK1_K20_GPIO_STA] = get_gpio_status(index);
+			return 1;
+			} else {
+				return -ENOENT;
+			}
 			break;
 		default:
 			return -ENOENT;
