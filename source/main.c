@@ -56,6 +56,16 @@
 #define CONTROLLER_ID kUSB_ControllerEhci0
 #endif
 
+#ifdef BOARD_USES_ADC
+TaskHandle_t adc_task_handle;
+TaskHandle_t tsc_task_handle;
+#endif
+TaskHandle_t can0_task_handle;
+TaskHandle_t can1_task_handle;
+TaskHandle_t can_tx_notify_task_handle;
+TaskHandle_t spi_task_handle;
+
+
 /*!
  * @brief Application entry point.
  */
@@ -72,7 +82,6 @@ int main(void) {
 	{
 		PRINTF("create SPI task error\r\n");
 	}
-
 
 	if(xTaskCreate(can0_task, "CAN0_task", 1000L / sizeof(portSTACK_TYPE), NULL, 2, &can0_task_handle) != pdPASS)
 	{

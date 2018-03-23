@@ -10,6 +10,14 @@
 #include "errno.h"
 #include "stdlib.h"
 
+struct adc_data {
+	uint16_t adc[ADC0_CHANNEL_CNT];
+	uint16_t tsc_xm;
+	uint16_t tsc_xp;
+	uint16_t tsc_ym;
+	uint16_t tsc_yp;
+} adc_data;
+
 /*
  * Apalis ADC0 -> PTB0 -> ADC0_SE8
  * Apalis ADC1 -> PTB1 -> ADC0_SE9
@@ -110,9 +118,9 @@ void adc_task(void *pvParameters)
 	while(1) {
 		for (i = 0; i < ADC0_CHANNEL_CNT;i ++){
 			channel.channelNumber = adc0_channels[i];
-			gen_regs.adc[i] = do_adc_conversion(ADC0, &channel);
-			registers[APALIS_TK1_K20_ADC_CH0L + 2 * i] = gen_regs.adc[i] & 0xFF;
-			registers[APALIS_TK1_K20_ADC_CH0L + 2 * i + 1] = (gen_regs.adc[i] >> 8) & 0xFF;
+			adc_data.adc[i] = do_adc_conversion(ADC0, &channel);
+			registers[APALIS_TK1_K20_ADC_CH0L + 2 * i] = adc_data.adc[i] & 0xFF;
+			registers[APALIS_TK1_K20_ADC_CH0L + 2 * i + 1] = (adc_data.adc[i] >> 8) & 0xFF;
 		}
 		vTaskDelay(5);
 	}
@@ -176,37 +184,35 @@ void tsc_task(void *pvParameters)
 			ts_force_drive(0, 0, 1, 1);
 			vTaskDelay(10);
 			channel.channelNumber = tsc_channels[0];
-			gen_regs.tsc_ym = do_adc_conversion(ADC1, &channel);
+			adc_data.tsc_ym = do_adc_conversion(ADC1, &channel);
 
 			//probe yp with power across Y plane
 			channel.channelNumber = tsc_channels[1];
-			gen_regs.tsc_yp = do_adc_conversion(ADC1, &channel);
+			adc_data.tsc_yp = do_adc_conversion(ADC1, &channel);
 
 			//probe xm with power across X plane
 			ts_force_drive(1, 1, 0, 0);
 			vTaskDelay(10);
 			channel.channelNumber = tsc_channels[2];
-			gen_regs.tsc_xm = do_adc_conversion(ADC1, &channel);
+			adc_data.tsc_xm = do_adc_conversion(ADC1, &channel);
 
 			//probe xp with power across X plane
 			channel.channelNumber = tsc_channels[3];
-			gen_regs.tsc_xp = do_adc_conversion(ADC1, &channel);
+			adc_data.tsc_xp = do_adc_conversion(ADC1, &channel);
 
-			if (irq_stat == 0) {
-				generate_irq(APALIS_TK1_K20_TSC_IRQ);
-				irq_stat = 1;
-			}
 		} else {
-			gen_regs.tsc_xm = 0;
-			gen_regs.tsc_xp = 0;
-			gen_regs.tsc_ym = 0;
-			gen_regs.tsc_yp = 0;
+			adc_data.tsc_xm = 0;
+			adc_data.tsc_xp = 0;
+			adc_data.tsc_ym = 0;
+			adc_data.tsc_yp = 0;
 			vTaskDelay(20);
-			if (irq_stat == 0) {
-				generate_irq(APALIS_TK1_K20_TSC_IRQ);
-				irq_stat = 1;
-			}
 		}
+
+		if (irq_stat == 0) {
+			generate_irq(APALIS_TK1_K20_TSC_IRQ);
+			irq_stat = 1;
+		}
+
 		vTaskDelay(10);
 	}
 
@@ -227,33 +233,33 @@ int tsc_registers(dspi_transfer_t *spi_transfer)
 	} else if (rx_buf[0] == APALIS_TK1_K20_BULK_READ_INST) {
 		if (rx_buf[1] == APALIS_TK1_K20_TSC_XML) {
 			if (rx_buf[1] == 2) {
-				tx_buf[0] = gen_regs.tsc_xm & 0xFF;
-				tx_buf[1] = (gen_regs.tsc_xm >> 8) & 0xFF;
+				tx_buf[0] = adc_data.tsc_xm & 0xFF;
+				tx_buf[1] = (adc_data.tsc_xm >> 8) & 0xFF;
 				return 2;
 			} else if (rx_buf[1] == 8) {
-				tx_buf[0] = gen_regs.tsc_xm & 0xFF;
-				tx_buf[1] = (gen_regs.tsc_xm >> 8) & 0xFF;
-				tx_buf[2] = gen_regs.tsc_xp & 0xFF;
-				tx_buf[3] = (gen_regs.tsc_xp >> 8) & 0xFF;
-				tx_buf[4] = gen_regs.tsc_ym & 0xFF;
-				tx_buf[5] = (gen_regs.tsc_ym >> 8) & 0xFF;
-				tx_buf[6] = gen_regs.tsc_yp & 0xFF;
-				tx_buf[7] = (gen_regs.tsc_yp >> 8) & 0xFF;
+				tx_buf[0] = adc_data.tsc_xm & 0xFF;
+				tx_buf[1] = (adc_data.tsc_xm >> 8) & 0xFF;
+				tx_buf[2] = adc_data.tsc_xp & 0xFF;
+				tx_buf[3] = (adc_data.tsc_xp >> 8) & 0xFF;
+				tx_buf[4] = adc_data.tsc_ym & 0xFF;
+				tx_buf[5] = (adc_data.tsc_ym >> 8) & 0xFF;
+				tx_buf[6] = adc_data.tsc_yp & 0xFF;
+				tx_buf[7] = (adc_data.tsc_yp >> 8) & 0xFF;
 				return 8;
 			}
 		}
 		switch (rx_buf[1]) {
 		case APALIS_TK1_K20_TSC_XPL:
-			tx_buf[0] = gen_regs.tsc_xp & 0xFF;
-			tx_buf[1] = (gen_regs.tsc_xp >> 8) & 0xFF;
+			tx_buf[0] = adc_data.tsc_xp & 0xFF;
+			tx_buf[1] = (adc_data.tsc_xp >> 8) & 0xFF;
 			return 2;
 		case APALIS_TK1_K20_TSC_YML:
-			tx_buf[0] = gen_regs.tsc_ym & 0xFF;
-			tx_buf[1] = (gen_regs.tsc_ym >> 8) & 0xFF;
+			tx_buf[0] = adc_data.tsc_ym & 0xFF;
+			tx_buf[1] = (adc_data.tsc_ym >> 8) & 0xFF;
 			return 2;
 		case APALIS_TK1_K20_TSC_YPL:
-			tx_buf[0] = gen_regs.tsc_yp & 0xFF;
-			tx_buf[1] = (gen_regs.tsc_yp >> 8) & 0xFF;
+			tx_buf[0] = adc_data.tsc_yp & 0xFF;
+			tx_buf[1] = (adc_data.tsc_yp >> 8) & 0xFF;
 			return 2;
 		default:
 			return -ENOENT;
@@ -277,33 +283,33 @@ int adc_registers(dspi_transfer_t *spi_transfer)
 	} else if (rx_buf[0] == APALIS_TK1_K20_BULK_READ_INST) {
 		if (rx_buf[1] == APALIS_TK1_K20_ADC_CH0L) {
 			if (rx_buf[2] == 2) {
-				tx_buf[0] = gen_regs.adc[0] & 0xFF;
-				tx_buf[1] = (gen_regs.adc[0] >> 8) & 0xFF;
+				tx_buf[0] = adc_data.adc[0] & 0xFF;
+				tx_buf[1] = (adc_data.adc[0] >> 8) & 0xFF;
 				return 2;
 			} else if (rx_buf[2] == 8) {
-				tx_buf[0] = gen_regs.adc[0] & 0xFF;
-				tx_buf[1] = (gen_regs.adc[0] >> 8) & 0xFF;
-				tx_buf[2] = gen_regs.adc[1] & 0xFF;
-				tx_buf[3] = (gen_regs.adc[1] >> 8) & 0xFF;
-				tx_buf[4] = gen_regs.adc[2] & 0xFF;
-				tx_buf[5] = (gen_regs.adc[2] >> 8) & 0xFF;
-				tx_buf[6] = gen_regs.adc[3] & 0xFF;
-				tx_buf[7] = (gen_regs.adc[3] >> 8) & 0xFF;
+				tx_buf[0] = adc_data.adc[0] & 0xFF;
+				tx_buf[1] = (adc_data.adc[0] >> 8) & 0xFF;
+				tx_buf[2] = adc_data.adc[1] & 0xFF;
+				tx_buf[3] = (adc_data.adc[1] >> 8) & 0xFF;
+				tx_buf[4] = adc_data.adc[2] & 0xFF;
+				tx_buf[5] = (adc_data.adc[2] >> 8) & 0xFF;
+				tx_buf[6] = adc_data.adc[3] & 0xFF;
+				tx_buf[7] = (adc_data.adc[3] >> 8) & 0xFF;
 				return 8;
 			}
 		}
 		switch (rx_buf[1]){
 		case APALIS_TK1_K20_ADC_CH1L:
-			tx_buf[0] = gen_regs.adc[1] & 0xFF;
-			tx_buf[1] = (gen_regs.adc[1] >> 8) & 0xFF;
+			tx_buf[0] = adc_data.adc[1] & 0xFF;
+			tx_buf[1] = (adc_data.adc[1] >> 8) & 0xFF;
 			return 2;
 		case APALIS_TK1_K20_ADC_CH2L:
-			tx_buf[0] = gen_regs.adc[2] & 0xFF;
-			tx_buf[1] = (gen_regs.adc[2] >> 8) & 0xFF;
+			tx_buf[0] = adc_data.adc[2] & 0xFF;
+			tx_buf[1] = (adc_data.adc[2] >> 8) & 0xFF;
 			return 2;
 		case APALIS_TK1_K20_ADC_CH3L:
-			tx_buf[0] = gen_regs.adc[3] & 0xFF;
-			tx_buf[1] = (gen_regs.adc[3] >> 8) & 0xFF;
+			tx_buf[0] = adc_data.adc[3] & 0xFF;
+			tx_buf[1] = (adc_data.adc[3] >> 8) & 0xFF;
 			return 2;
 
 		default:

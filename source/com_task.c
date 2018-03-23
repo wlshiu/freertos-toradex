@@ -7,7 +7,7 @@
 volatile uint8_t registers[APALIS_TK1_K20_LAST_REG];
 volatile uint8_t regRxHandled;
 
-/* Put FW version at known address in binary. Make it 32-bit to have room for the future*/
+/* Put FW version at known address in a binary. Make it 32-bit to have room for the future*/
 const uint32_t __attribute__((section(".FwVersion"), used)) fw_version = APALIS_TK1_K20_FW_VER;
 
 static dspi_slave_handle_t spi_handle;
@@ -151,16 +151,17 @@ static void SPI_init() {
 }
 
 void spi_task(void *pvParameters) {
-	callback_message_t cb_msg;
+	callback_message_t spi_msg;
 	dspi_transfer_t slaveXfer;
 	int ret = 0;
+	int can_read = -1;
 #ifdef SPI_DMA
 	uint32_t slaveRxChannel, slaveTxChannel;
 	edma_config_t userConfig;
 #endif
 
-	cb_msg.sem = xSemaphoreCreateBinary();
-	spi_handle.userData = &cb_msg;
+	spi_msg.sem = xSemaphoreCreateBinary();
+	spi_handle.userData = &spi_msg;
 	SPI_init();
 #ifdef SPI_DMA
 	slaveRxChannel = 0U;
@@ -178,8 +179,8 @@ void spi_task(void *pvParameters) {
 	EDMA_CreateHandle(&dspiEdmaSlaveRxHandle, DMA0, slaveRxChannel);
 	EDMA_CreateHandle(&dspiEdmaSlaveTxHandle, DMA0, slaveTxChannel);
 
-	g_dspi_edma_s_handle.userData = &cb_msg;
-	DSPI_SlaveTransferCreateHandleEDMA(SPI2, &g_dspi_edma_s_handle, SPI_callback, &cb_msg, &dspiEdmaSlaveRxHandle, &dspiEdmaSlaveTxHandle);
+	g_dspi_edma_s_handle.userData = &spi_msg;
+	DSPI_SlaveTransferCreateHandleEDMA(SPI2, &g_dspi_edma_s_handle, SPI_callback, &spi_msg, &dspiEdmaSlaveRxHandle, &dspiEdmaSlaveTxHandle);
 #endif
 	memset(registers, 0x00, APALIS_TK1_K20_LAST_REG);
 	registers[APALIS_TK1_K20_REVREG] = APALIS_TK1_K20_FW_VER;
@@ -194,7 +195,7 @@ void spi_task(void *pvParameters) {
 		ret = DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
 		if ( ret == kStatus_Success) {
 
-			xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
+			xSemaphoreTake(spi_msg.sem, portMAX_DELAY);
 
 			slaveXfer.txData = slaveTxData;
 			slaveXfer.rxData = slaveRxData;
@@ -204,10 +205,12 @@ void spi_task(void *pvParameters) {
 				} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0))
 						&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(0))) {
 					ret = canx_registers(&slaveXfer, 0);
+					can_read = 0;
 
 				} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(1))
 						&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(1))) {
 					ret = canx_registers(&slaveXfer, 1);
+					can_read = 1;
 #ifdef BOARD_USES_ADC
 				} else if ((slaveRxData[1] >= APALIS_TK1_K20_ADCREG) && (slaveRxData[1] <= APALIS_TK1_K20_ADC_CH3H)) {
 					ret = adc_registers(&slaveXfer);
@@ -223,7 +226,7 @@ void spi_task(void *pvParameters) {
 				}
 
 
-				if (ret <= 0) {
+				if (ret < 0) {
 					slaveTxData[0] = TK1_K20_INVAL;
 					slaveTxData[1] = ret;
 					slaveTxData[2] = slaveRxData[0];
@@ -242,17 +245,10 @@ void spi_task(void *pvParameters) {
 #else
 					DSPI_SlaveTransferNonBlocking(SPI2, &spi_handle, &slaveXfer);
 #endif
-					xSemaphoreTake(cb_msg.sem, portMAX_DELAY);
-					if (resume_can != 0) {
-						if (resume_can == 1) {
-							vTaskResume(can0_task_handle);
-							can_calculate_available_data(0);
-						}
-						else {
-							vTaskResume(can1_task_handle);
-							can_calculate_available_data(1);
-						}
-						resume_can = 0;
+					xSemaphoreTake(spi_msg.sem, portMAX_DELAY);
+					if (can_read >= 0) {
+						can_spi_read_complete(can_read);
+						can_read = -1;
 					}
 				}
 			}

@@ -36,31 +36,22 @@
 #define EFLG_TXBO	0x20
 #define EFLG_RXOVR	0x40
 
-static flexcan_handle_t flexcanHandle[2];
-static volatile bool txComplete[2] = {false, false};
-static volatile bool rxComplete[2] = {false, false};
-
-struct can_task {
-	uint8_t id;
-	flexcan_frame_t rx_frame;
-};
-
 struct can_registers {
+	CAN_Type *base;
+	flexcan_handle_t handle;
 	uint8_t can_status_reg;
 	uint8_t can_err_reg;
 	uint8_t can_mode;
-	uint8_t recived_frames_cnt;
+	uint8_t frames_in_buf;
 	uint8_t rx_buf_top;
 	uint8_t rx_buf_bottom;
 };
 
-static flexcan_frame_t tx_frame[2];
-static uint8_t data_buffer[2][APALIS_TK1_CAN_RX_BUF_SIZE][CAN_TRANSFER_BUF_LEN];
+static uint8_t data_buffer[2][CAN_RX_BUF_SIZE][CAN_TRANSFER_BUF_LEN];
 
 static struct can_registers can_regs[2];
-uint8_t resume_can;
 
-void generate_can_irq(uint8_t id)
+static void generate_can_irq(uint8_t id)
 {
 	if (id == 0)
 		GPIO_TogglePinsOutput(GPIOB, 1u << 8u);
@@ -85,7 +76,7 @@ void can_tx_notify_task(void *pvParameters)
 	}
 }
 
-static void flexcan_callback0(CAN_Type *base, flexcan_handle_t *handle, status_t status, uint32_t result, void *userData)
+static void flexcan_callback(CAN_Type *base, flexcan_handle_t *handle, status_t status, uint32_t result, void *userData)
 {
 	callback_message_t * cb = (callback_message_t*) userData;
 	BaseType_t reschedule = pdFALSE;
@@ -100,7 +91,16 @@ static void flexcan_callback0(CAN_Type *base, flexcan_handle_t *handle, status_t
 	case kStatus_FLEXCAN_TxIdle:
 		if (TX_MESSAGE_BUFFER_NUM0 == result)
 		{
-			xTaskNotifyFromISR(can_tx_notify_task_handle, 0x01, eSetBits, &reschedule);
+			switch ((int)base)
+			{
+			case (int)CAN0:
+				xTaskNotifyFromISR(can_tx_notify_task_handle, 0x01, eSetBits, &reschedule);
+				break;
+			case (int)CAN1:
+				xTaskNotifyFromISR(can_tx_notify_task_handle, 0x02, eSetBits, &reschedule);
+				break;
+			}
+
 		}
 		break;
 
@@ -110,32 +110,7 @@ static void flexcan_callback0(CAN_Type *base, flexcan_handle_t *handle, status_t
 	portYIELD_FROM_ISR(reschedule);
 }
 
-static void flexcan_callback1(CAN_Type *base, flexcan_handle_t *handle, status_t status, uint32_t result, void *userData)
-{
-	callback_message_t * cb = (callback_message_t*) userData;
-	BaseType_t reschedule = pdFALSE;
-
-	switch (status)
-	{
-	case kStatus_FLEXCAN_RxFifoIdle:
-		cb->async_status = pdTRUE;
-		xSemaphoreGiveFromISR(cb->sem, &reschedule);
-		break;
-
-	case kStatus_FLEXCAN_TxIdle:
-		if (TX_MESSAGE_BUFFER_NUM0 == result)
-		{
-			xTaskNotifyFromISR(can_tx_notify_task_handle, 0x02, eSetBits, &reschedule);
-		}
-		break;
-
-	default:
-		break;
-	}
-	portYIELD_FROM_ISR(reschedule);
-}
-
-static void CAN0_Init()
+static void CAN_Init(uint8_t id)
 {
 	flexcan_config_t flexcanConfig;
 	flexcan_rx_fifo_config_t fifoConfig;
@@ -147,74 +122,36 @@ static void CAN0_Init()
 
 	/* Init FlexCAN module. */
 	flexcanConfig.clkSrc = kFLEXCAN_ClkSrcPeri;
-	FLEXCAN_Init(CAN0, &flexcanConfig, CLOCK_GetFreq(kCLOCK_BusClk));
+	FLEXCAN_Init(can_regs[id].base, &flexcanConfig, CLOCK_GetFreq(kCLOCK_BusClk));
 
 	/* Create FlexCAN handle structure and set call back function. */
-	FLEXCAN_TransferCreateHandle(CAN0, &flexcanHandle[0], flexcan_callback0, flexcanHandle[0].userData);
+	FLEXCAN_TransferCreateHandle(can_regs[id].base, &can_regs[id].handle, flexcan_callback,
+			can_regs[id].handle.userData);
 
 	/* Set Rx Mask to don't care on all bits. */
-	FLEXCAN_SetRxMbGlobalMask(CAN0, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
-	FLEXCAN_SetRxFifoGlobalMask(CAN0, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
+	FLEXCAN_SetRxMbGlobalMask(can_regs[id].base, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
+	FLEXCAN_SetRxFifoGlobalMask(can_regs[id].base, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
 
 	fifoConfig.idFilterNum = 0;
 	fifoConfig.idFilterTable = &fifoFilter;
 	fifoConfig.idFilterType = kFLEXCAN_RxFifoFilterTypeC;
 	fifoConfig.priority = kFLEXCAN_RxFifoPrioHigh;
-	FLEXCAN_SetRxFifoConfig(CAN0, &fifoConfig, true);
+	FLEXCAN_SetRxFifoConfig(can_regs[id].base, &fifoConfig, true);
 
 	/* errata #5641 */
-	FLEXCAN_SetTxMbConfig(CAN0, TX_MESSAGE_BUFFER_NUM0 - 1, true);
+	FLEXCAN_SetTxMbConfig(can_regs[id].base, TX_MESSAGE_BUFFER_NUM0 - 1, true);
 
 	/* Setup Tx Message Buffer. */
-	FLEXCAN_SetTxMbConfig(CAN0, TX_MESSAGE_BUFFER_NUM0, true);
-	memset(&can_regs[0], 0x00u,sizeof(struct can_registers));
-
-	PRINTF("CAN0 init done \r\n");
+	FLEXCAN_SetTxMbConfig(can_regs[id].base, TX_MESSAGE_BUFFER_NUM0, true);
 }
 
-static void CAN1_Init()
-{
-	flexcan_config_t flexcanConfig;
-	flexcan_rx_fifo_config_t fifoConfig;
-	uint32_t fifoFilter = 0xFFFFFFFF;
-
-	FLEXCAN_GetDefaultConfig(&flexcanConfig);
-
-	flexcanConfig.baudRate = 1000000U; /* set default to 1Mbit/s */
-
-	/* Init FlexCAN module. */
-	flexcanConfig.clkSrc = kFLEXCAN_ClkSrcPeri;
-	FLEXCAN_Init(CAN1, &flexcanConfig, CLOCK_GetFreq(kCLOCK_BusClk));
-
-	/* Create FlexCAN handle structure and set call back function. */
-	FLEXCAN_TransferCreateHandle(CAN1, &flexcanHandle[1], flexcan_callback1, flexcanHandle[1].userData);
-
-	/* Set Rx Mask to don't care on all bits. */
-	FLEXCAN_SetRxMbGlobalMask(CAN1, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
-	FLEXCAN_SetRxFifoGlobalMask(CAN1, FLEXCAN_RX_MB_EXT_MASK(0x00, 0, 0));
-
-	fifoConfig.idFilterNum = 0;
-	fifoConfig.idFilterTable = &fifoFilter;
-	fifoConfig.idFilterType = kFLEXCAN_RxFifoFilterTypeC;
-	fifoConfig.priority = kFLEXCAN_RxFifoPrioHigh;
-	FLEXCAN_SetRxFifoConfig(CAN1, &fifoConfig, true);
-
-	/* errata #5641 */
-	FLEXCAN_SetTxMbConfig(CAN1, TX_MESSAGE_BUFFER_NUM0 - 1, true);
-
-	/* Setup Tx Message Buffer. */
-	FLEXCAN_SetTxMbConfig(CAN1, TX_MESSAGE_BUFFER_NUM0, true);
-	memset(&can_regs[0], 0x00u,sizeof(struct can_registers));
-
-	PRINTF("CAN1 init done \r\n");
-}
 uint8_t available_data[2];
 
-void can_calculate_available_data(uint8_t id) {
+static void can_calculate_available_data(uint8_t id) {
 	if ( can_regs[id].rx_buf_bottom <= can_regs[id].rx_buf_top)
 		available_data[id] = can_regs[id].rx_buf_top - can_regs[id].rx_buf_bottom;
 	else
-		available_data[id] = APALIS_TK1_CAN_RX_BUF_SIZE - can_regs[id].rx_buf_bottom;
+		available_data[id] = CAN_RX_BUF_SIZE - can_regs[id].rx_buf_bottom;
 
 	available_data[id] = (available_data[id] > APALIS_TK1_MAX_CAN_DMA_XREF) ? APALIS_TK1_MAX_CAN_DMA_XREF:available_data[id];
 	registers[APALIS_TK1_K20_CAN_IN_BUF_CNT + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] = available_data[id];
@@ -222,20 +159,29 @@ void can_calculate_available_data(uint8_t id) {
 		registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] &= ~CANINTF_RX;
 }
 
-void frame_to_buffer(flexcan_frame_t *frame, uint8_t id) {
+void can_spi_read_complete(uint8_t id)
+{
+
+}
+
+static void frame_to_buffer(flexcan_frame_t *frame, uint8_t id) {
 	uint8_t top_frame = can_regs[id].rx_buf_top;
-	if (frame->format ==  kFLEXCAN_FrameFormatExtend) {
+	switch (frame->format){
+	case kFLEXCAN_FrameFormatExtend:
 		data_buffer[id][top_frame][0] = frame->id & 0xFF;
 		data_buffer[id][top_frame][1] = (frame->id >> 8 ) & 0xFF;
 		data_buffer[id][top_frame][2] = (frame->id >> 16 ) & 0xFF;
 		data_buffer[id][top_frame][3] = (frame->id >> 24 ) & 0x1F;
 		data_buffer[id][top_frame][3] |= CAN_EFF_FLAG >> 24;
-	} else {
+		break;
+	case kFLEXCAN_FrameFormatStandard:
 		data_buffer[id][top_frame][0] = (frame->id >> 18) & 0xFF;
 		data_buffer[id][top_frame][1] = ((frame->id >> 18) >> 8 ) & 0x7F;
 		data_buffer[id][top_frame][2] = 0x00;
 		data_buffer[id][top_frame][3] = 0x00;
+		break;
 	}
+
 	data_buffer[id][top_frame][3] |= frame->type ?  (CAN_RTR_FLAG >> 24):0x00;
 	data_buffer[id][top_frame][4] = frame->length;
 
@@ -250,72 +196,68 @@ void frame_to_buffer(flexcan_frame_t *frame, uint8_t id) {
 	case 1:data_buffer[id][top_frame][5] = frame->dataByte0;
 	}
 	can_regs[id].rx_buf_top++;
-	can_regs[id].rx_buf_top %= APALIS_TK1_CAN_RX_BUF_SIZE;
+	can_regs[id].rx_buf_top %= CAN_RX_BUF_SIZE;
 	can_calculate_available_data(id);
+}
+
+static void can_fifo_rx(uint8_t id, flexcan_fifo_transfer_t * rxXfer)
+{
+	callback_message_t *can_msg = (callback_message_t *) can_regs[id].handle.userData;
+	taskENTER_CRITICAL();
+	FLEXCAN_TransferReceiveFifoNonBlocking(can_regs[id].base, &can_regs[id].handle, rxXfer);
+	taskEXIT_CRITICAL();
+	xSemaphoreTake(can_msg->sem, portMAX_DELAY);
+	frame_to_buffer(rxXfer->frame, id);
+	can_regs[id].frames_in_buf++;
+	registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] |= CANINTF_RX;
+	generate_can_irq(id);
+	if (can_regs[id].frames_in_buf >= CAN_RX_BUF_SIZE)
+		vTaskSuspend(NULL);
 }
 
 void can0_task(void *pvParameters) {
 	flexcan_frame_t  rxFrame;
 	flexcan_fifo_transfer_t rxXfer;
-	callback_message_t cb_msg;
-	cb_msg.sem = xSemaphoreCreateBinary();
-	cb_msg.async_status = pdFALSE;
-	flexcanHandle[0].userData = (void *) &cb_msg;
-	CAN0_Init();
+	callback_message_t can_msg;
+
+	can_msg.sem = xSemaphoreCreateBinary();
+	can_msg.async_status = pdFALSE;
+	memset(&can_regs[0], 0x00u, sizeof(struct can_registers));
+	can_regs[0].handle.userData = (void *) &can_msg;
+	can_regs[0].base = CAN0;
+
+	CAN_Init(0);
+	PRINTF("CAN0 init done \r\n");
+
 	rxXfer.frame = &rxFrame;
 
 	while(1)
 	{
-		taskENTER_CRITICAL();
-		FLEXCAN_TransferReceiveFifoNonBlocking(CAN0, &flexcanHandle[0], &rxXfer);
-		taskEXIT_CRITICAL();
-		if (xSemaphoreTake(cb_msg.sem, portMAX_DELAY) == pdTRUE) {
-			if (cb_msg.async_status == pdTRUE) {
-				cb_msg.async_status = pdFALSE;
-				frame_to_buffer(&rxFrame, 0);
-				can_regs[0].recived_frames_cnt++;
-				registers[APALIS_TK1_K20_CANREG] |= CANINTF_RX;
-				generate_can_irq(0);
-			}
-
-			if (can_regs[0].recived_frames_cnt >= APALIS_TK1_CAN_RX_BUF_SIZE)
-				vTaskSuspend(NULL);
-		}
-
+		can_fifo_rx(0, &rxXfer);
 	}
-	vSemaphoreDelete(cb_msg.sem);
+	vSemaphoreDelete(can_msg.sem);
 }
 
 void can1_task(void *pvParameters) {
 	flexcan_frame_t  rxFrame;
 	flexcan_fifo_transfer_t rxXfer;
-	callback_message_t cb_msg;
+	callback_message_t can_msg;
 
-	cb_msg.sem = xSemaphoreCreateBinary();
-	flexcanHandle[1].userData = (void *) &cb_msg;
-	CAN1_Init();
+	can_msg.sem = xSemaphoreCreateBinary();
+	can_msg.async_status = pdFALSE;
+	memset(&can_regs[1], 0x00u, sizeof(struct can_registers));
+	can_regs[1].handle.userData = (void *) &can_msg;
+	can_regs[1].base = CAN1;
+
+	CAN_Init(1);
+	PRINTF("CAN1 init done \r\n");
 	rxXfer.frame = &rxFrame;
 
 	while(1)
 	{
-		taskENTER_CRITICAL();
-		FLEXCAN_TransferReceiveFifoNonBlocking(CAN1, &flexcanHandle[1], &rxXfer);
-		taskEXIT_CRITICAL();
-		if (xSemaphoreTake(cb_msg.sem, portMAX_DELAY) == pdTRUE) {
-			if (cb_msg.async_status == pdTRUE) {
-				cb_msg.async_status = pdFALSE;
-				frame_to_buffer(&rxFrame, 1);
-				can_regs[1].recived_frames_cnt++;
-				registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_OFFSET] |= CANINTF_RX;
-				generate_can_irq(1);
-			}
-
-			if (can_regs[1].recived_frames_cnt >= APALIS_TK1_CAN_RX_BUF_SIZE) {
-				vTaskSuspend(NULL);
-			}
-		}
+		can_fifo_rx(1, &rxXfer);
 	}
-	vSemaphoreDelete(cb_msg.sem);
+	vSemaphoreDelete(can_msg.sem);
 
 }
 
@@ -335,105 +277,73 @@ static void can_change_mode(int id, uint8_t new_mode)
 
 }
 
-uint8_t set_canreg (int id, uint8_t value)
+static uint8_t set_canreg (int id, uint8_t value)
 {
 	registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] = value;
 	if ( can_regs[id].can_mode != (value & CANCTRL_MODMASK) )
 		can_change_mode(id, (value & CANCTRL_MODMASK));
-	return 1;
-}
-
-uint8_t clr_canreg (int id, uint8_t mask)
-{
-	mask &= (CANINTF_TX | CANINTF_ERR);
-	registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] &= ~mask;
-	return 1;
-}
-
-uint8_t set_canerr (int id, uint8_t value)
-{
-	return 1;
-}
-
-uint8_t set_canbadreg (int id, uint8_t value)
-{
-
-	FLEXCAN_SetBitRate(id ? CAN1:CAN0, CLOCK_GetFreq(kCLOCK_BusClk), value * APALIS_TK1_CAN_CLK_UNIT);
-	return 1;
-}
-
-#if 0
-static flexcan_timing_config_t timingConfig;
-#endif
-
-uint8_t set_canbittimig (int id, uint16_t value, int16_t mask)
-{
-#if 0
-	if(mask & 0xFF) {
-		timingConfig.phaseSeg1 = 0;
-		timingConfig.phaseSeg2 = 0;
-		timingConfig.rJumpwidth = 0;
-	}
-	if (mask & 0xFF00) {
-		timingConfig.propSeg = 0;
-		timingConfig.preDivider = 0;
-
-	}
-#endif
-	return 1;
-}
-
-uint8_t can0_transmit(){
-	flexcan_mb_transfer_t txXfer;
-
-	txXfer.frame = &tx_frame[0];
-	txXfer.mbIdx = TX_MESSAGE_BUFFER_NUM0;
-
-	taskENTER_CRITICAL();
-	FLEXCAN_TransferSendNonBlocking(CAN0, &flexcanHandle[0], &txXfer);
-	taskEXIT_CRITICAL();
 	return 0;
 }
 
-uint8_t can1_transmit(){
-	flexcan_mb_transfer_t txXfer;
+static uint8_t clr_canreg (int id, uint8_t mask)
+{
+	mask &= (CANINTF_TX | CANINTF_ERR);
+	registers[APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(id)] &= ~mask;
+	return 0;
+}
 
-	txXfer.frame = &tx_frame[1];
-	txXfer.mbIdx = TX_MESSAGE_BUFFER_NUM0;
+static uint8_t set_canerr (int id, uint8_t value)
+{
+	return 0;
+}
 
-	taskENTER_CRITICAL();
-	FLEXCAN_TransferSendNonBlocking(CAN1, &flexcanHandle[1], &txXfer);
-	taskEXIT_CRITICAL();
+static uint8_t set_canbadreg (int id, uint8_t value)
+{
+
+	FLEXCAN_SetBitRate(can_regs[id].base, CLOCK_GetFreq(kCLOCK_BusClk), value * APALIS_TK1_CAN_CLK_UNIT);
+	return 0;
+}
+
+static uint8_t set_canbittimig (int id, uint16_t value, int16_t mask)
+{
+	/* According to NXP we should use default setting */
 	return 0;
 }
 
 uint8_t can_sendframe(uint8_t id, uint8_t *data, uint8_t len)
 {
-	tx_frame[id].length = data[4];
-	tx_frame[id].id = (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0];
+	flexcan_mb_transfer_t txXfer;
+	flexcan_frame_t tx_frame;
 
-	tx_frame[id].format = (data[3] << 24 & CAN_EFF_FLAG) ?
+	tx_frame.length = data[4];
+	tx_frame.id = (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0];
+
+	tx_frame.format = (data[3] << 24 & CAN_EFF_FLAG) ?
 				kFLEXCAN_FrameFormatExtend:kFLEXCAN_FrameFormatStandard;
-	tx_frame[id].type = (data[3] << 24 & CAN_RTR_FLAG) ?
+	tx_frame.type = (data[3] << 24 & CAN_RTR_FLAG) ?
 				kFLEXCAN_FrameTypeRemote:kFLEXCAN_FrameTypeData;
 
-	if (tx_frame[id].format == kFLEXCAN_FrameFormatExtend)
-		tx_frame[id].id = FLEXCAN_ID_EXT(tx_frame[id].id);
+	if (tx_frame.format == kFLEXCAN_FrameFormatExtend)
+		tx_frame.id = FLEXCAN_ID_EXT(tx_frame.id);
 	else
-		tx_frame[id].id = FLEXCAN_ID_STD(tx_frame[id].id);
+		tx_frame.id = FLEXCAN_ID_STD(tx_frame.id);
 
-	tx_frame[id].dataByte0 = data[5];
-	tx_frame[id].dataByte1 = data[5 + 1];
-	tx_frame[id].dataByte2 = data[5 + 2];
-	tx_frame[id].dataByte3 = data[5 + 3];
-	tx_frame[id].dataByte4 = data[5 + 4];
-	tx_frame[id].dataByte5 = data[5 + 5];
-	tx_frame[id].dataByte6 = data[5 + 6];
-	tx_frame[id].dataByte7 = data[5 + 7];
-	if (id == 0)
-		can0_transmit();
-	else if (id == 1)
-		can1_transmit();
+	tx_frame.dataByte0 = data[5];
+	tx_frame.dataByte1 = data[5 + 1];
+	tx_frame.dataByte2 = data[5 + 2];
+	tx_frame.dataByte3 = data[5 + 3];
+	tx_frame.dataByte4 = data[5 + 4];
+	tx_frame.dataByte5 = data[5 + 5];
+	tx_frame.dataByte6 = data[5 + 6];
+	tx_frame.dataByte7 = data[5 + 7];
+
+	txXfer.frame = &tx_frame;
+	txXfer.mbIdx = TX_MESSAGE_BUFFER_NUM0;
+
+	taskENTER_CRITICAL();
+	FLEXCAN_TransferSendNonBlocking(can_regs[id].base , &can_regs[id].handle, &txXfer);
+	taskEXIT_CRITICAL();
+
 	return 0;
 }
 
@@ -445,11 +355,9 @@ uint16_t can_readframe(uint8_t id, dspi_transfer_t *spi_transfer)
 	if (rx_size > available_data[id])
 		rx_size = available_data[id];
 	can_regs[id].rx_buf_bottom = can_regs[id].rx_buf_bottom + rx_size;
-	can_regs[id].rx_buf_bottom %= APALIS_TK1_CAN_RX_BUF_SIZE;
+	can_regs[id].rx_buf_bottom %= CAN_RX_BUF_SIZE;
 
-	resume_can = id + 1;
-
-	can_regs[id].recived_frames_cnt -= rx_size;
+	can_regs[id].frames_in_buf -= rx_size;
 	can_calculate_available_data(id);
 
 	return rx_size * CAN_TRANSFER_BUF_LEN;

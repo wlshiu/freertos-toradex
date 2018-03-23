@@ -1482,11 +1482,8 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
                     /* Receive buffer is not null, store data into it */
                     *handle->rxData = dataReceived;
                     ++handle->rxData;
-                }
 
-                /* Decrease remaining receive byte count */
-                --handle->remainingReceiveByteCount;
-                if (handle->remainingSendByteCount == 0 && handle->rxData){
+                if (handle->remainingSendByteCount == 0){
                         		if ( *(handle->rxData - 2) ==  APALIS_TK1_K20_READ_INST)
                         		{
                                     		base->PUSHR_SLAVE = registers[dataReceived];
@@ -1509,6 +1506,11 @@ void DSPI_SlaveTransferHandleIRQ(SPI_Type *base, dspi_slave_handle_t *handle)
                         			base->PUSHR_SLAVE = 0x55;
                         		}
                         	}
+                }
+
+                /* Decrease remaining receive byte count */
+                --handle->remainingReceiveByteCount;
+
                 if (handle->remainingSendByteCount > 0)
                 {
                 		if (handle->txData)

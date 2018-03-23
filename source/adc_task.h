@@ -9,8 +9,8 @@
 #include "fsl_dspi.h"
 
 #ifdef BOARD_USES_ADC
-TaskHandle_t adc_task_handle;
-TaskHandle_t tsc_task_handle;
+extern TaskHandle_t adc_task_handle;
+extern TaskHandle_t tsc_task_handle;
 void adc_task(void *pvParameters);
 void tsc_task(void *pvParameters);
 int adc_registers(dspi_transfer_t *spi_transfer);
