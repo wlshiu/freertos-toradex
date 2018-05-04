@@ -60,9 +60,11 @@
 TaskHandle_t adc_task_handle;
 TaskHandle_t tsc_task_handle;
 #endif
+#ifndef TESTER_BUILD
 TaskHandle_t can0_task_handle;
 TaskHandle_t can1_task_handle;
 TaskHandle_t can_tx_notify_task_handle;
+#endif
 TaskHandle_t spi_task_handle;
 
 
@@ -74,7 +76,9 @@ int main(void) {
 	/* Init board hardware. */
 	BOARD_InitPins();
 	BOARD_BootClockRUN();
+#ifndef TESTER_BUILD
 	BOARD_InitDebugConsole();
+#endif
 	PRINTF("Apalis K20 Firmware Version %d.%d\r\n", FW_MAJOR, FW_MINOR);
 
 	/* Create RTOS task */
@@ -82,7 +86,7 @@ int main(void) {
 	{
 		PRINTF("create SPI task error\r\n");
 	}
-
+#ifndef TESTER_BUILD
 	if(xTaskCreate(can0_task, "CAN0_task", 1000L / sizeof(portSTACK_TYPE), NULL, 2, &can0_task_handle) != pdPASS)
 	{
 		PRINTF("create CAN0 task error\r\n");
@@ -97,7 +101,7 @@ int main(void) {
 	{
 		PRINTF("create CAN TX notify task error\r\n");
 	}
-
+#endif
 #ifdef BOARD_USES_ADC
 	if(xTaskCreate(adc_task, "ADC_task", 1000L / sizeof(portSTACK_TYPE), NULL, 2, &adc_task_handle) != pdPASS)
 	{

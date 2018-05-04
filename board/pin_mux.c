@@ -56,6 +56,7 @@ void BOARD_InitPins(void)
 			kGPIO_DigitalInput,
 	};
 	port_pin_config_t od_config;
+	port_pin_config_t in_config;
 
 	CLOCK_EnableClock(kCLOCK_PortA);
 	CLOCK_EnableClock(kCLOCK_PortB);
@@ -66,7 +67,7 @@ void BOARD_InitPins(void)
 	/* Osc pins */
 	PORT_SetPinMux(PORTA, 18UL, kPORT_PinDisabledOrAnalog);
 	PORT_SetPinMux(PORTA, 19UL, kPORT_PinDisabledOrAnalog);
-
+#ifndef TESTER_BUILD
 	/* CAN0 pinmux config */
 	PORT_SetPinMux(PORTA, 12u, kPORT_MuxAlt2); /* CAN0 TX */
 	PORT_SetPinMux(PORTA, 13u, kPORT_MuxAlt2); /* CAN0 RX */
@@ -79,6 +80,7 @@ void BOARD_InitPins(void)
 	/* Debug UART3 pinmux config */
 	PORT_SetPinMux(PORTE, 0u, kPORT_MuxAlt3); /* UART1 TX */
 	PORT_SetPinMux(PORTE, 1u, kPORT_MuxAlt3); /* UART1 RX */
+#endif
 #endif
 
 #ifdef BOARD_USES_ADC
@@ -132,8 +134,15 @@ void BOARD_InitPins(void)
 	PORT_SetPinConfig(PORTC, 19u, &od_config); /* PMIC_ONKEY */
 
 	/* GPIOs */
+	in_config.mux = kPORT_MuxAsGpio;
+	in_config.openDrainEnable = kPORT_OpenDrainDisable;
+	in_config.pullSelect = kPORT_PullDown;
+	in_config.slewRate = kPORT_FastSlewRate;
+	in_config.passiveFilterEnable = kPORT_PassiveFilterDisable;
+	in_config.driveStrength = kPORT_LowDriveStrength;
+	in_config.lockRegister = kPORT_UnlockRegister;
 	for (i = 0; i < sizeof(gpio_list)/sizeof(struct gpio_id); i++){
-		PORT_SetPinMux(gpio_list[i].port, gpio_list[i].pin, kPORT_MuxAsGpio);
+		PORT_SetPinConfig(gpio_list[i].port, gpio_list[i].pin, &in_config);
 		GPIO_PinInit(gpio_list[i].gpio, gpio_list[i].pin, &gpio_in_config);
 	}
 

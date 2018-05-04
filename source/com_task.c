@@ -202,6 +202,7 @@ void spi_task(void *pvParameters) {
 			if (slaveRxData[0] != APALIS_TK1_K20_READ_INST) {
 				if (slaveRxData[1] <= 0x05) {
 					ret = general_registers(&slaveXfer);
+#ifndef TESTER_BUILD
 				} else if ((slaveRxData[1] >= APALIS_TK1_K20_CANREG + APALIS_TK1_K20_CAN_DEV_OFFSET(0))
 						&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(0))) {
 					ret = canx_registers(&slaveXfer, 0);
@@ -211,6 +212,7 @@ void spi_task(void *pvParameters) {
 						&& (slaveRxData[1] <= APALIS_TK1_K20_CAN_OUT_BUF_END + APALIS_TK1_K20_CAN_DEV_OFFSET(1))) {
 					ret = canx_registers(&slaveXfer, 1);
 					can_read = 1;
+#endif
 #ifdef BOARD_USES_ADC
 				} else if ((slaveRxData[1] >= APALIS_TK1_K20_ADCREG) && (slaveRxData[1] <= APALIS_TK1_K20_ADC_CH3H)) {
 					ret = adc_registers(&slaveXfer);

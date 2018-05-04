@@ -20,6 +20,10 @@ struct gpio_id{
 struct gpio_id gpio_list [] = {
 		{PORTA, GPIOA, 3},
 		{PORTA, GPIOA, 5},
+#ifdef TESTER_BUILD
+		{PORTA, GPIOA, 12},
+		{PORTA, GPIOA, 13},
+#endif
 		{PORTA, GPIOA, 17},
 #ifndef BOARD_USES_ADC
 		{PORTB, GPIOB, 0},
@@ -40,6 +44,10 @@ struct gpio_id gpio_list [] = {
 		{PORTC, GPIOC, 4},
 		{PORTC, GPIOC, 6},
 		{PORTC, GPIOC, 7},
+#ifdef TESTER_BUILD
+		{PORTC, GPIOC, 16},
+		{PORTC, GPIOC, 17},
+#endif
 		{PORTD, GPIOD, 0},
 		{PORTD, GPIOD, 1},
 		{PORTD, GPIOD, 2},
@@ -55,7 +63,7 @@ struct gpio_id gpio_list [] = {
 		{PORTD, GPIOD, 13},
 		{PORTD, GPIOD, 14},
 		{PORTD, GPIOD, 15},
-#ifndef SDK_DEBUGCONSOLE
+#if !defined(SDK_DEBUGCONSOLE) || defined(TESTER_BUILD)
 		{PORTE, GPIOE, 0},
 		{PORTE, GPIOE, 1},
 #endif

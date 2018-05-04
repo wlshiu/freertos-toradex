@@ -60,6 +60,9 @@
 //#define SDK_DEBUGCONSOLE 1U
 #endif
 
+#ifdef TESTER_BUILD
+#undef SDK_DEBUGCONSOLE
+#endif
 #if defined(SDK_DEBUGCONSOLE) && !(SDK_DEBUGCONSOLE)
 #include <stdio.h>
 #endif
