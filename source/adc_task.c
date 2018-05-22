@@ -232,11 +232,11 @@ int tsc_registers(dspi_transfer_t *spi_transfer)
 		}
 	} else if (rx_buf[0] == APALIS_TK1_K20_BULK_READ_INST) {
 		if (rx_buf[1] == APALIS_TK1_K20_TSC_XML) {
-			if (rx_buf[1] == 2) {
+			if (rx_buf[2] == 2) {
 				tx_buf[0] = adc_data.tsc_xm & 0xFF;
 				tx_buf[1] = (adc_data.tsc_xm >> 8) & 0xFF;
 				return 2;
-			} else if (rx_buf[1] == 8) {
+			} else if (rx_buf[2] == 8) {
 				tx_buf[0] = adc_data.tsc_xm & 0xFF;
 				tx_buf[1] = (adc_data.tsc_xm >> 8) & 0xFF;
 				tx_buf[2] = adc_data.tsc_xp & 0xFF;
