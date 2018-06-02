@@ -1,0 +1,134 @@
+# CROSS COMPILER SETTING
+SET(CMAKE_SYSTEM_NAME Generic)
+CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
+
+# THE VERSION NUMBER
+SET (Tutorial_VERSION_MAJOR 1)
+SET (Tutorial_VERSION_MINOR 0)
+
+# ENABLE ASM
+ENABLE_LANGUAGE(ASM)
+
+SET(CMAKE_STATIC_LIBRARY_PREFIX)
+SET(CMAKE_STATIC_LIBRARY_SUFFIX)
+
+SET(CMAKE_EXECUTABLE_LIBRARY_PREFIX)
+SET(CMAKE_EXECUTABLE_LIBRARY_SUFFIX)
+
+SET(CMAKE_SKIP_INSTALL_RULES TRUE)
+
+# CURRENT DIRECTORY
+SET(ProjDirPath ${CMAKE_CURRENT_SOURCE_DIR})
+SET(BspRootDirPath ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../..)
+
+# DEBUG LINK FILE
+set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -T${BspRootDirPath}/platform/devices/MCIMX7D/linker/gcc/MCIMX7D_M4_tcm.ld  -static")
+
+# RELEASE LINK FILE
+set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -T${BspRootDirPath}/platform/devices/MCIMX7D/linker/gcc/MCIMX7D_M4_tcm.ld  -static")
+
+# DEBUG ASM FLAGS
+SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG} -g  -mcpu=cortex-m4  -mfloat-abi=hard  -mfpu=fpv4-sp-d16  -mthumb  -Wall  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -mapcs  -std=gnu99")
+
+# DEBUG C FLAGS
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g  -O0  -mcpu=cortex-m4  -mfloat-abi=hard  -mfpu=fpv4-sp-d16  -mthumb  -MMD  -MP  -Wall  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -mapcs  -std=gnu99")
+
+# DEBUG LD FLAGS
+SET(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -g  -mcpu=cortex-m4  -mfloat-abi=hard  -mfpu=fpv4-sp-d16  --specs=nano.specs  -lm  -Wall  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -Os  -mthumb  -mapcs  -Xlinker --gc-sections  -Xlinker -static  -Xlinker -z  -Xlinker muldefs")
+
+# RELEASE ASM FLAGS
+SET(CMAKE_ASM_FLAGS_RELEASE "${CMAKE_ASM_FLAGS_RELEASE} -mcpu=cortex-m4  -mfloat-abi=hard  -mfpu=fpv4-sp-d16  -mthumb  -Wall  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -mapcs  -std=gnu99")
+
+# RELEASE C FLAGS
+SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Os  -mcpu=cortex-m4  -mfloat-abi=hard  -mfpu=fpv4-sp-d16  -mthumb  -MMD  -MP  -Wall  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -mapcs  -std=gnu99")
+
+# RELEASE LD FLAGS
+SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -mcpu=cortex-m4  -mfloat-abi=hard  -mfpu=fpv4-sp-d16  --specs=nano.specs  -lm  -Wall  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -Os  -mthumb  -mapcs  -Xlinker --gc-sections  -Xlinker -static  -Xlinker -z  -Xlinker muldefs")
+
+# ASM MACRO
+SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
+
+# C MACRO
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}  -D__DEBUG")
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}  -DCPU_MCIMX7D_M4")
+SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__NDEBUG")
+SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DCPU_MCIMX7D_M4")
+
+# CXX MACRO
+
+# INCLUDE_DIRECTORIES
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+    INCLUDE_DIRECTORIES(${ProjDirPath}/../../../../..)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/CMSIS/Include)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices/MCIMX7D/include)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices/MCIMX7D/startup)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/drivers/inc)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/utilities/inc)
+    INCLUDE_DIRECTORIES(${ProjDirPath}/../../../../..)
+ELSEIF(CMAKE_BUILD_TYPE MATCHES Release)
+    INCLUDE_DIRECTORIES(${ProjDirPath}/../../../../..)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/CMSIS/Include)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices/MCIMX7D/include)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/devices/MCIMX7D/startup)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/drivers/inc)
+    INCLUDE_DIRECTORIES(${BspRootDirPath}/platform/utilities/inc)
+    INCLUDE_DIRECTORIES(${ProjDirPath}/../../../../..)
+ENDIF()
+
+# ADD_EXECUTABLE
+ADD_EXECUTABLE(ecspi_interrupt_master_example
+    "${BspRootDirPath}/platform/devices/MCIMX7D/startup/gcc/startup_MCIMX7D_M4.S"
+    "${BspRootDirPath}/platform/utilities/src/debug_console_imx.c"
+    "${BspRootDirPath}/platform/utilities/inc/debug_console_imx.h"
+    "${BspRootDirPath}/platform/utilities/src/print_scan.c"
+    "${BspRootDirPath}/platform/utilities/src/print_scan.h"
+    "${BspRootDirPath}/platform/drivers/inc/ccm_analog_imx7d.h"
+    "${BspRootDirPath}/platform/drivers/inc/ccm_imx7d.h"
+    "${BspRootDirPath}/platform/drivers/inc/lmem.h"
+    "${BspRootDirPath}/platform/drivers/inc/rdc.h"
+    "${BspRootDirPath}/platform/drivers/inc/rdc_defs_imx7d.h"
+    "${BspRootDirPath}/platform/drivers/inc/wdog_imx.h"
+    "${BspRootDirPath}/platform/drivers/src/ccm_analog_imx7d.c"
+    "${BspRootDirPath}/platform/drivers/src/ccm_imx7d.c"
+    "${BspRootDirPath}/platform/drivers/src/lmem.c"
+    "${BspRootDirPath}/platform/drivers/src/rdc.c"
+    "${BspRootDirPath}/platform/drivers/src/wdog_imx.c"
+    "${BspRootDirPath}/platform/devices/MCIMX7D/startup/system_MCIMX7D_M4.c"
+    "${BspRootDirPath}/platform/devices/MCIMX7D/startup/system_MCIMX7D_M4.h"
+    "${ProjDirPath}/../../../../../pin_mux.c"
+    "${ProjDirPath}/../../../../../pin_mux.h"
+    "${ProjDirPath}/../../../../../board.c"
+    "${ProjDirPath}/../../../../../board.h"
+    "${ProjDirPath}/../../../../../clock_freq.c"
+    "${ProjDirPath}/../../../../../clock_freq.h"
+    "${ProjDirPath}/../hardware_init.c"
+    "${ProjDirPath}/../main.c"
+    "${BspRootDirPath}/platform/drivers/src/ecspi.c"
+    "${BspRootDirPath}/platform/drivers/inc/ecspi.h"
+    "${BspRootDirPath}/platform/drivers/src/uart_imx.c"
+    "${BspRootDirPath}/platform/drivers/inc/uart_imx.h"
+)
+SET_TARGET_PROPERTIES(ecspi_interrupt_master_example PROPERTIES OUTPUT_NAME "ecspi_interrupt_master_example.elf")
+
+TARGET_LINK_LIBRARIES(ecspi_interrupt_master_example -Wl,--start-group)
+# LIBRARIES
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+ELSEIF(CMAKE_BUILD_TYPE MATCHES Release)
+ENDIF()
+
+# SYSTEM LIBRARIES
+TARGET_LINK_LIBRARIES(ecspi_interrupt_master_example m)
+TARGET_LINK_LIBRARIES(ecspi_interrupt_master_example c)
+TARGET_LINK_LIBRARIES(ecspi_interrupt_master_example gcc)
+TARGET_LINK_LIBRARIES(ecspi_interrupt_master_example nosys)
+TARGET_LINK_LIBRARIES(ecspi_interrupt_master_example -Wl,--end-group)
+
+# MAP FILE
+SET(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG}  -Xlinker -Map=debug/ecspi_interrupt_master_example.map")
+SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE}  -Xlinker -Map=release/ecspi_interrupt_master_example.map")
+
+# BIN AND HEX
+ADD_CUSTOM_COMMAND(TARGET ecspi_interrupt_master_example POST_BUILD COMMAND ${CMAKE_OBJCOPY} -Oihex ${EXECUTABLE_OUTPUT_PATH}/ecspi_interrupt_master_example.elf ${EXECUTABLE_OUTPUT_PATH}/ecspi_interrupt_master_example.hex)
+ADD_CUSTOM_COMMAND(TARGET ecspi_interrupt_master_example POST_BUILD COMMAND ${CMAKE_OBJCOPY} -Obinary ${EXECUTABLE_OUTPUT_PATH}/ecspi_interrupt_master_example.elf ${EXECUTABLE_OUTPUT_PATH}/ecspi_interrupt_master_example.bin)

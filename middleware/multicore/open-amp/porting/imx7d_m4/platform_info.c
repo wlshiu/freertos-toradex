@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2015, Freescale Corporation
- * All rights reserved.
+ * Copyright (c) 2015 Freescale Semiconductor, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -10,7 +9,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 3. Neither the name of Mentor Graphics Corporation nor the names of its
+ * 3. Neither the name of Freescale Semiconductor nor the names of its
  *    contributors may be used to endorse or promote products derived from this
  *    software without specific prior written permission.
  *
@@ -35,36 +34,33 @@
  * DESCRIPTION
  *
  *       This file implements APIs to get platform specific
- *       information for OpenAMP. 
+ *       information for OpenAMP.
  *
  **************************************************************************/
 
 #include "platform.h"
-#include "../../rpmsg/rpmsg.h"
+#include "rpmsg/rpmsg.h"
 
-/* Reference implementation that show cases platform_get_cpu_info and 
+/* Reference implementation that show cases platform_get_cpu_info and
  platform_get_for_firmware API implementation for Bare metal environment */
 
 extern struct hil_platform_ops proc_ops;
 
 /*
- * Linux requirems the ALIGN to 0x1000 instead of 0x80
+ * Number of buffers per VirtIO queue
+ */
+#define RPMSG_NUM_BUFS                    256
+
+/*
+ * Linux requires the ALIGN to 0x1000(4KB) instead of 0x80
  */
 #define VRING_ALIGN                       0x1000
 
 /*
  * Linux has a different alignment requirement, and its have 512 buffers instead of 32 buffers for the 2 ring
  */
-#define VRING0_BASE                       0xBFFF0000
-#define VRING1_BASE                       0xBFFF8000
-
-/* 
- * 32 MSG (16 rx, 16 tx), 512 bytes each, it is only used when RPMSG driver is working in master mode, otherwise
- * the share memory is managed by the other side.
- * When working with Linux, SHM_ADDR and SHM_SIZE is not used
- */
-#define SHM_ADDR                          0
-#define SHM_SIZE                          0
+#define VRING0_BASE                       0x8FFF0000
+#define VRING1_BASE                       0x8FFF8000
 
 /* IPI_VECT here defines VRING index in MU */
 #define VRING0_IPI_VECT                   0
@@ -74,10 +70,10 @@ extern struct hil_platform_ops proc_ops;
 #define REMOTE_CPU_ID                     1
 
 /**
- * This array provdes defnition of CPU nodes for master and remote
- * context. It contains two nodes beacuse the same file is intended
+ * This array provides definition of CPU nodes for master and remote
+ * context. It contains two nodes because the same file is intended
  * to use with both master and remote configurations. On zynq platform
- * only one node defintion is required for master/remote as there
+ * only one node definition is required for master/remote as there
  * are only two cores present in the platform.
  *
  * Only platform specific info is populated here. Rest of information
@@ -90,7 +86,7 @@ extern struct hil_platform_ops proc_ops;
  * -Channel info.
  *
  * Although the channel info is not platform specific information
- * but it is conveneient to keep it in HIL so that user can easily
+ * but it is convenient to keep it in HIL so that user can easily
  * provide it without modifying the generic part.
  *
  * It is good idea to define hil_proc structure with platform
@@ -108,10 +104,10 @@ extern struct hil_platform_ops proc_ops;
  *
  * 2)Second node is required by the master and it defines remote CPU ID,
  *   shared memory and interrupts info. In general no channel info is required by the
- *   Master node, however in baremetal master and linux remote case the linux
+ *   Master node, however in bare-metal master and linux remote case the linux
  *   rpmsg bus driver behaves as master so the rpmsg driver on linux side still needs
- *   channel info. This information is not required by the masters for baremetal
- *   remotes. 
+ *   channel info. This information is not required by the masters for bare-metal
+ *   remotes.
  *
  */
 struct hil_proc proc_table []=
@@ -133,8 +129,8 @@ struct hil_proc proc_table []=
             /* Vring info */                /*struct proc_vring*/
             {
                 /*[0]*/
-                { /* TX */  
-                    NULL, (void*)VRING0_BASE/*phy_addr*/, 256/*num_descs*/, VRING_ALIGN/*align*/,
+                { /* TX */
+                    NULL, (void*)VRING0_BASE/*phy_addr*/, RPMSG_NUM_BUFS/*num_descs*/, VRING_ALIGN/*align*/,
                     /*struct virtqueue, phys_addr, num_descs, align*/
                     {
                         /*struct proc_intr*/
@@ -143,7 +139,7 @@ struct hil_proc proc_table []=
                 },
                 /*[1]*/
                 { /* RX */
-                    NULL, (void*)VRING1_BASE, 256, VRING_ALIGN,
+                    NULL, (void*)VRING1_BASE, RPMSG_NUM_BUFS, VRING_ALIGN,
                     {
                         VRING1_IPI_VECT,0,0,NULL
                     }
@@ -183,13 +179,13 @@ struct hil_proc proc_table []=
             2, (1<<VIRTIO_RPMSG_F_NS), 0,
             {
                 {/* RX */
-                    NULL, (void*)VRING0_BASE, 256, VRING_ALIGN,
+                    NULL, (void*)VRING0_BASE, RPMSG_NUM_BUFS, VRING_ALIGN,
                     {
                         VRING0_IPI_VECT,0,0,NULL
                     }
                 },
                 {/* TX */
-                    NULL, (void*)VRING1_BASE, 256, VRING_ALIGN,
+                    NULL, (void*)VRING1_BASE, RPMSG_NUM_BUFS, VRING_ALIGN,
                     {
                         VRING1_IPI_VECT,0,0,NULL
                     }
@@ -228,10 +224,13 @@ struct hil_proc proc_table []=
  *
  * return  - status of execution
  */
-int platform_get_processor_info(struct hil_proc *proc , int cpu_id) {
+int platform_get_processor_info(struct hil_proc *proc , int cpu_id)
+{
     int idx;
-    for(idx = 0; idx < sizeof(proc_table)/sizeof(struct hil_proc); idx++) {
-        if((cpu_id == HIL_RSVD_CPU_ID) || (proc_table[idx].cpu_id == cpu_id) ) {
+    for(idx = 0; idx < sizeof(proc_table)/sizeof(struct hil_proc); idx++)
+    {
+        if((cpu_id == HIL_RSVD_CPU_ID) || (proc_table[idx].cpu_id == cpu_id))
+        {
             env_memcpy(proc,&proc_table[idx], sizeof(struct hil_proc));
             return 0;
         }
@@ -239,7 +238,7 @@ int platform_get_processor_info(struct hil_proc *proc , int cpu_id) {
     return -1;
 }
 
-int platform_get_processor_for_fw(char *fw_name) {
-
+int platform_get_processor_for_fw(char *fw_name)
+{
     return 1;
 }
